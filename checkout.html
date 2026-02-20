@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Leke Vogue Enterprise</title>
+    <meta name="description" content="Complete your order at Leke Vogue Enterprise.">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💃</text></svg>">
+    <!-- Paystack Inline JS -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="index.html" class="logo">Leke<span>Vogue</span></a>
+            
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="shop.html">Shop</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+            
+            <div class="nav-icons">
+                <div class="cart-icon" onclick="window.location.href='cart.html'">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span class="cart-count">0</span>
+                </div>
+                <button class="mobile-menu-btn" aria-label="Menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Banner -->
+    <section class="page-banner">
+        <div class="container">
+            <h1>Checkout</h1>
+            <p>Complete your order</p>
+        </div>
+    </section>
+
+    <!-- Checkout Container -->
+    <section class="checkout-container">
+        <div class="container">
+            <!-- Empty Cart State -->
+            <div class="cart-empty" id="emptyCart" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <h2>Your cart is empty</h2>
+                <p>Add some items to your cart before checking out.</p>
+                <a href="shop.html" class="btn btn-primary">Start Shopping</a>
+            </div>
+            
+            <!-- Checkout Content -->
+            <div class="checkout-content" id="checkoutContent">
+                <!-- Checkout Form -->
+                <div class="checkout-form">
+                    <h2>Customer Information</h2>
+                    <form id="checkoutForm" onsubmit="processCheckout(event)">
+                        <div class="form-group">
+                            <label for="fullName">Full Name *</label>
+                            <input type="text" id="fullName" name="fullName" required placeholder="Enter your full name">
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone Number *</label>
+                            <input type="tel" id="phone" name="phone" required placeholder="Enter your phone number">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" required placeholder="Enter your email">
+                        </div>
+                        <div class="form-group">
+                            <label for="notes">Optional Notes</label>
+                            <textarea id="notes" name="notes" placeholder="Any special instructions or notes"></textarea>
+                        </div>
+                        
+                        <!-- Important Notice -->
+                        <div class="checkout-notice">
+                            <strong>Important Notices:</strong><br>
+                            • Orders can only be kept for a maximum of one week<br>
+                            • Customers must pick up within 7 days
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="payBtn">
+                            Pay with Paystack
+                        </button>
+                        
+                        <button type="button" class="btn btn-secondary btn-lg" style="width: 100%; margin-top: 15px;" onclick="sendToWhatsApp()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 10px;">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                            </svg>
+                            Order via WhatsApp
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Order Summary -->
+                <div class="order-summary">
+                    <h2>Order Summary</h2>
+                    
+                    <div class="order-items" id="orderItems">
+                        <!-- Order items will be rendered by JavaScript -->
+                    </div>
+                    
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span id="orderSubtotal">GHS 0.00</span>
+                    </div>
+                    
+                    <div class="summary-row">
+                        <span style="font-size: 1.2rem; font-weight: 600;">Total</span>
+                        <span class="summary-total" id="orderTotal">GHS 0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <h3>Leke<span>Vogue</span></h3>
+                    <p>Your premier destination for premium fashion, shoes, bags, wigs, and hair bundles in Ghana.</p>
+                    <div class="footer-social">
+                        <a href="#" aria-label="Facebook">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                            </svg>
+                        </a>
+                        <a href="#" aria-label="WhatsApp">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                            </svg>
+                        </a>
+                        <a href="#" aria-label="TikTok">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="shop.html">Shop</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Policies</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Cookie Policy</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Contact</h4>
+                    <ul class="footer-links">
+                        <li><a href="tel:0500098510">0500098510</a></li>
+                        <li><a href="mailto:info@lekevogue.shop">info@lekevogue.shop</a></li>
+                        <li>Kumasi Tanoso, opposite Ahenfie</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2026 Leke Vogue Enterprise. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        // Store customer data
+        let customerData = {};
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            renderOrderSummary();
+            UI.init();
+        });
+        
+        function renderOrderSummary() {
+            const cartItems = Cart.getCartItems();
+            const orderItemsContainer = document.getElementById('orderItems');
+            const emptyCart = document.getElementById('emptyCart');
+            const checkoutContent = document.getElementById('checkoutContent');
+            
+            if (cartItems.length === 0) {
+                emptyCart.style.display = 'block';
+                checkoutContent.style.display = 'none';
+                return;
+            }
+            
+            emptyCart.style.display = 'none';
+            checkoutContent.style.display = 'grid';
+            
+            // Render order items
+            let itemsHTML = '';
+            cartItems.forEach(item => {
+                itemsHTML += `
+                    <div class="order-item">
+                        <div class="order-item-info">
+                            <h4>${item.name}</h4>
+                            <span>Qty: ${item.quantity}</span>
+                        </div>
+                        <div class="order-item-price">${formatPrice(item.total)}</div>
+                    </div>
+                `;
+            });
+            
+            orderItemsContainer.innerHTML = itemsHTML;
+            
+            // Update totals
+            const subtotal = Cart.getCartTotal();
+            document.getElementById('orderSubtotal').textContent = formatPrice(subtotal);
+            document.getElementById('orderTotal').textContent = formatPrice(subtotal);
+        }
+        
+        function getCustomerData() {
+            return {
+                fullName: document.getElementById('fullName').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                notes: document.getElementById('notes').value
+            };
+        }
+        
+        function validateForm() {
+            const data = getCustomerData();
+            
+            if (!data.fullName || !data.phone || !data.email) {
+                Cart.showToast('Please fill in all required fields', 'error');
+                return false;
+            }
+            
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(data.email)) {
+                Cart.showToast('Please enter a valid email address', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function processCheckout(event) {
+            event.preventDefault();
+            
+            if (!validateForm()) return;
+            
+            const cartItems = Cart.getCartItems();
+            if (cartItems.length === 0) {
+                Cart.showToast('Your cart is empty', 'error');
+                return;
+            }
+            
+            customerData = getCustomerData();
+            const total = Cart.getCartTotal();
+            
+            // Paystack payment
+            // Note: Replace with your actual Paystack public key
+            const paystackKey = 'pk_test_your_public_key_here';
+            
+            const handler = PaystackPop.setup({
+                key: paystackKey,
+                email: customerData.email,
+                amount: total * 100, // Convert to kobo
+                currency: 'GHS',
+                ref: 'LV' + Date.now(),
+                onClose: function() {
+                    Cart.showToast('Payment cancelled', 'error');
+                },
+                callback: function(response) {
+                    // Payment successful
+                    completeOrder();
+                }
+            });
+            
+            handler.openIframe();
+        }
+        
+        function sendToWhatsApp() {
+            if (!validateForm()) return;
+            
+            const cartItems = Cart.getCartItems();
+            if (cartItems.length === 0) {
+                Cart.showToast('Your cart is empty', 'error');
+                return;
+            }
+            
+            customerData = getCustomerData();
+            const total = Cart.getCartTotal();
+            
+            // Generate WhatsApp message
+            let message = `*New Order from Leke Vogue Website*\n\n`;
+            message += `*Customer Details*\n`;
+            message += `Name: ${customerData.fullName}\n`;
+            message += `Phone: ${customerData.phone}\n`;
+            if (customerData.email) message += `Email: ${customerData.email}\n`;
+            if (customerData.notes) message += `Notes: ${customerData.notes}\n`;
+            message += `\n*Ordered Items*\n`;
+            
+            cartItems.forEach(item => {
+                message += `- ${item.name} x${item.quantity} = GHS ${item.total.toFixed(2)}\n`;
+            });
+            
+            message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;
+            message += `Order placed via Leke Vogue Website`;
+            
+            // Open WhatsApp
+            const encodedMessage = encodeURIComponent(message);
+            window.open(`https://wa.me/233500098510?text=${encodedMessage}`, '_blank');
+            
+            // Clear cart
+            Cart.clearCart();
+            Cart.showToast('Order sent via WhatsApp!', 'success');
+            
+            // Redirect to home after delay
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        }
+        
+        function completeOrder() {
+            const cartItems = Cart.getCartItems();
+            const total = Cart.getCartTotal();
+            
+            // Generate WhatsApp message for order confirmation
+            let message = `*Payment Confirmed - New Order*\n\n`;
+            message += `*Transaction Status: SUCCESS*\n\n`;
+            message += `*Customer Details*\n`;
+            message += `Name: ${customerData.fullName}\n`;
+            message += `Phone: ${customerData.phone}\n`;
+            message += `Email: ${customerData.email}\n`;
+            if (customerData.notes) message += `Notes: ${customerData.notes}\n`;
+            message += `\n*Ordered Items*\n`;
+            
+            cartItems.forEach(item => {
+                message += `- ${item.name} x${item.quantity} = GHS ${item.total.toFixed(2)}\n`;
+            });
+            
+            message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;
+            message += `Order placed via Leke Vogue Website`;
+            
+            // Open WhatsApp with order details
+            const encodedMessage = encodeURIComponent(message);
+            window.open(`https://wa.me/233500098510?text=${encodedMessage}`, '_blank');
+            
+            // Clear cart
+            Cart.clearCart();
+            Cart.showToast('Payment successful! Order sent to WhatsApp.', 'success');
+            
+            // Redirect to home after delay
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
