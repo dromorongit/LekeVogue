@@ -353,7 +353,7 @@ const products = [
 
 // Categories data
 const categories = [
-    { name: "Shoes", icon: "👠" },
+    { name: "Shoes", icon: "👠", subcategories: ["Heels", "Slipper Heels", "Flat Slippers", "Flat Sandals", "Block Sandals", "Block Slippers", "Flat Shoes", "Unisex Slippers", "Sneakers", "Men's Executive Shoes", "Men's Slippers", "Men's Sandals", "Kids Shoes (Girls)", "Kids Shoes (Boys)", "Kids Shoes (Unisex)"] },
     { name: "Bags", icon: "👜" },
     { name: "T-Shirts", icon: "👕" },
     { name: "Dresses", icon: "👗" },

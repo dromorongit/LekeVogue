@@ -215,8 +215,90 @@ const UI = {
             <div class="category-card ${index === 0 ? 'active' : ''}" data-category="${cat.name}">
                 <div class="category-icon">${cat.icon}</div>
                 <h4>${cat.name}</h4>
+                ${cat.subcategories ? '<div class="subcategory-indicator">▼</div>' : ''}
             </div>
         `).join('');
+        
+        // Add subcategory rendering if exists
+        this.attachSubcategoryListeners();
+    },
+    
+    // Render subcategories for a category
+    renderSubcategories(category, container) {
+        const cat = categories.find(c => c.name === category);
+        if (!cat || !cat.subcategories) return '';
+        
+        return `
+            <div class="subcategories-grid">
+                ${cat.subcategories.map(sub => `
+                    <div class="subcategory-card" data-category="${category}" data-subcategory="${sub}">
+                        <span>${sub}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    },
+    
+    // Attach subcategory click listeners
+    attachSubcategoryListeners() {
+        document.querySelectorAll('.category-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const category = card.dataset.category;
+                const cat = categories.find(c => c.name === category);
+                
+                // Remove existing subcategories
+                document.querySelector('.subcategories-container')?.remove();
+                
+                if (cat && cat.subcategories) {
+                    // Add subcategories after categories grid
+                    const categoriesSection = document.querySelector('.categories');
+                    if (categoriesSection) {
+                        const subcontainer = document.createElement('div');
+                        subcontainer.className = 'subcategories-container';
+                        subcontainer.innerHTML = `
+                            <div class="container">
+                                <h3 style="margin-bottom: 20px;">${category} Subcategories</h3>
+                                ${this.renderSubcategories(category)}
+                            </div>
+                        `;
+                        categoriesSection.appendChild(subcontainer);
+                        
+                        // Add click listeners to subcategories
+                        subcontainer.querySelectorAll('.subcategory-card').forEach(subCard => {
+                            subCard.addEventListener('click', () => {
+                                const subcategory = subCard.dataset.subcategory;
+                                const category = subCard.dataset.category;
+                                
+                                // Filter products by subcategory
+                                let filteredProducts = products.filter(p => p.category === category);
+                                
+                                // Update URL
+                                if (window.location.pathname.includes('shop.html')) {
+                                    const url = new URL(window.location);
+                                    url.searchParams.set('category', category);
+                                    url.searchParams.set('subcategory', subcategory);
+                                    window.history.pushState({}, '', url);
+                                }
+                                
+                                // Show filtered products
+                                const productsGrid = document.querySelector('.products-grid');
+                                if (productsGrid) {
+                                    this.renderProducts(filteredProducts, productsGrid);
+                                    const countEl = document.getElementById('productsCount');
+                                    if (countEl) {
+                                        countEl.textContent = `${filteredProducts.length} products found in ${subcategory}`;
+                                    }
+                                }
+                            });
+                        });
+                    }
+                }
+                
+                // Update active state
+                document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+            });
+        });
     },
     
     // Initialize search functionality

@@ -478,6 +478,40 @@ h4 { font-size: 1.25rem; }
     font-size: 0.85rem;
 }
 
+.subcategory-indicator {
+    font-size: 0.7rem;
+    margin-top: 5px;
+    color: var(--gray);
+}
+
+.subcategories-container {
+    padding: 30px 0;
+    background: var(--light);
+    margin-top: 20px;
+}
+
+.subcategories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.subcategory-card {
+    background: var(--primary);
+    padding: 15px 20px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--light-gray);
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+}
+
+.subcategory-card:hover {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--primary);
+}
+
 /* Featured Products */
 .featured-products {
     padding: 80px 0;
