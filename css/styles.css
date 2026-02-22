@@ -753,6 +753,14 @@ h4 { font-size: 1.25rem; }
     color: #999;
 }
 
+.developer-credit {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--secondary);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
 /* Page Banner */
 .page-banner {
     padding: 120px 0 60px;
