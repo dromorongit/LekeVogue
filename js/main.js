@@ -304,7 +304,7 @@ const UI = {
     
     // Initialize all
     init() {
-        this.initMobileMenu();
+        // Mobile menu is handled via inline onclick in HTML
         this.initSearch();
         this.initCategoryFilter();
         Cart.updateCartCount();
