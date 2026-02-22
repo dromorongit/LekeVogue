@@ -362,7 +362,8 @@ const categories = [
     { name: "Wigs", icon: "💇" },
     { name: "Hair Bundles", icon: "💆" },
     { name: "Hair Extensions", icon: "✨" },
-    { name: "Hair Products & Tools", icon: "💈" }
+    { name: "Hair Products & Tools", icon: "💈" },
+    { name: "Belts", icon: "👔" }
 ];
 
 // Get featured products
