@@ -911,7 +911,14 @@ h4 { font-size: 1.25rem; }
 
 .product-info-details h1 {
     font-size: 2rem;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
+}
+
+.product-brand,
+.product-subcategory {
+    color: var(--gray);
+    font-size: 0.95rem;
+    margin-bottom: 5px;
 }
 
 .product-info-details .price {
@@ -921,10 +928,116 @@ h4 { font-size: 1.25rem; }
     margin-bottom: 20px;
 }
 
+.product-info-details .original-price {
+    font-size: 1rem;
+    color: var(--gray);
+    text-decoration: line-through;
+    margin-top: -15px;
+    margin-bottom: 20px;
+}
+
 .product-description {
     color: var(--gray);
     margin-bottom: 30px;
     line-height: 1.8;
+}
+
+/* Product Meta Information */
+.product-meta {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: var(--light);
+    border-radius: var(--radius-sm);
+}
+
+.product-detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.product-detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.detail-value {
+    color: var(--gray);
+}
+
+.in-stock {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.out-of-stock {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+/* Product Options (Size & Color) */
+.product-option-group {
+    margin-bottom: 25px;
+}
+
+.product-option-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--dark);
+}
+
+.size-options,
+.color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.size-btn {
+    padding: 10px 20px;
+    border: 2px solid var(--light-gray);
+    background: var(--primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 500;
+    transition: var(--transition);
+    min-width: 50px;
+}
+
+.size-btn:hover {
+    border-color: var(--accent);
+}
+
+.size-btn.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--primary);
+}
+
+.color-btn {
+    padding: 10px 15px;
+    border: 2px solid var(--light-gray);
+    background: var(--primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.color-btn:hover {
+    border-color: var(--accent);
+}
+
+.color-btn.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--primary);
 }
 
 .quantity-selector {

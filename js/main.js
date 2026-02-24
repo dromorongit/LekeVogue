@@ -15,15 +15,26 @@ const Cart = {
     },
     
     // Add item to cart
-    addItem(productId, quantity = 1) {
+    addItem(productId, quantity = 1, size = null, color = null) {
         const cart = this.getCart();
-        const existingItem = cart.find(item => item.id === productId || item.id === String(productId) || item.id === parseInt(productId));
+        const existingItem = cart.find(item => 
+            item.id === productId || 
+            item.id === String(productId) || 
+            item.id === parseInt(productId)
+        );
         
         if (existingItem) {
             existingItem.quantity += quantity;
+            if (size) existingItem.size = size;
+            if (color) existingItem.color = color;
         } else {
             // Store as string to handle both MongoDB ObjectId and integer IDs
-            cart.push({ id: String(productId), quantity: quantity });
+            cart.push({ 
+                id: String(productId), 
+                quantity: quantity,
+                size: size,
+                color: color
+            });
         }
         
         this.saveCart(cart);

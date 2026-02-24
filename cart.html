@@ -185,23 +185,32 @@
             let itemsHTML = '<div class="cart-header"><div>Product</div><div>Price</div><div>Quantity</div><div>Total</div><div></div></div>';
             
             cartItems.forEach(item => {
+                // Build options string
+                let optionsText = '';
+                if (item.size) optionsText += `Size: ${item.size}`;
+                if (item.color) {
+                    if (optionsText) optionsText += ' | ';
+                    optionsText += `Color: ${item.color}`;
+                }
+                
                 itemsHTML += `
                     <div class="cart-item">
                         <div class="cart-item-product">
                             <img src="${item.image}" alt="${item.name}">
                             <div>
                                 <h4>${item.name}</h4>
+                                ${optionsText ? `<p style="font-size: 0.85rem; color: var(--accent);">${optionsText}</p>` : ''}
                                 <p style="font-size: 0.85rem; color: var(--gray);">${item.category}</p>
                             </div>
                         </div>
                         <div class="cart-item-price">${formatPrice(item.price)}</div>
                         <div class="quantity-controls" style="width: auto;">
-                            <button onclick="updateItemQuantity(${item.id}, -1)">-</button>
+                            <button onclick="updateItemQuantity('${item.id}', -1)">-</button>
                             <span>${item.quantity}</span>
-                            <button onclick="updateItemQuantity(${item.id}, 1)">+</button>
+                            <button onclick="updateItemQuantity('${item.id}', 1)">+</button>
                         </div>
                         <div class="cart-item-total">${formatPrice(item.total)}</div>
-                        <button class="cart-item-remove" onclick="removeItem(${item.id})">
+                        <button class="cart-item-remove" onclick="removeItem('${item.id}')">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>

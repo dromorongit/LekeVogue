@@ -129,6 +129,12 @@
     <script src="js/data.js"></script>
     <script src="js/main.js"></script>
     <script>
+        // Product details state
+        let selectedSize = '';
+        let selectedColor = '';
+        let selectedDimension = '';
+        let detailQuantity = 1;
+        
         // Initialize product page with API data
         async function initProduct() {
             // Get product ID from URL
@@ -155,14 +161,61 @@
                 
                 // Render product details
                 const productDetails = document.getElementById('productDetails');
+                
+                // Build all images array (cover + additional)
+                const allImages = [product.image, ...(product.images || [])].filter((v, i, a) => a.indexOf(v) === i);
+                
+                // Render sizes selector if available
+                const sizesHtml = product.sizes && product.sizes.length > 0 ? `
+                    <div class="product-option-group">
+                        <label>Size:</label>
+                        <div class="size-options">
+                            ${product.sizes.map(size => `
+                                <button type="button" class="size-btn" data-size="${size}" onclick="selectSize('${size}')">${size}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '';
+                
+                // Render colors selector if available
+                const colorsHtml = product.colors && product.colors.length > 0 ? `
+                    <div class="product-option-group">
+                        <label>Color:</label>
+                        <div class="color-options">
+                            ${product.colors.map(color => `
+                                <button type="button" class="color-btn" data-color="${color}" onclick="selectColor('${color}')" title="${color}">${color}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '';
+                
+                // Render dimensions if available
+                const dimensionsHtml = product.dimensions ? `
+                    <div class="product-detail-item">
+                        <span class="detail-label">Dimensions:</span>
+                        <span class="detail-value">${product.dimensions}</span>
+                    </div>
+                ` : '';
+                
+                // Render stock status
+                const stockStatus = product.stock > 0 
+                    ? `<span class="in-stock">In Stock (${product.stock} available)</span>`
+                    : `<span class="out-of-stock">Out of Stock</span>`;
+                
+                // Price display (show original price if on sale)
+                const priceHtml = product.originalPrice && product.originalPrice > product.price
+                    ? `<p class="price">${formatPrice(product.price)}</p>
+                       <p class="original-price">Was: ${formatPrice(product.originalPrice)}</p>`
+                    : `<p class="price">${formatPrice(product.price)}</p>`;
+                
                 productDetails.innerHTML = `
                     <div class="product-gallery">
                         <div class="main-image">
-                            <img src="${product.images ? product.images[0] : product.image}" alt="${product.name}" id="mainImage">
+                            <img src="${allImages[0]}" alt="${product.name}" id="mainImage">
                         </div>
-                        ${product.images && product.images.length > 1 ? `
+                        ${allImages.length > 1 ? `
                             <div class="thumbnail-grid">
-                                ${product.images.map((img, index) => `
+                                ${allImages.map((img, index) => `
                                     <div class="thumbnail ${index === 0 ? 'active' : ''}" onclick="changeImage('${img}')">
                                         <img src="${img}" alt="${product.name}">
                                     </div>
@@ -172,8 +225,28 @@
                     </div>
                     <div class="product-info-details">
                         <h1>${product.name}</h1>
-                        <p class="price">${formatPrice(product.price)}</p>
+                        
+                        ${product.brand ? `<p class="product-brand">Brand: ${product.brand}</p>` : ''}
+                        ${product.subcategory ? `<p class="product-subcategory">${product.subcategory}</p>` : ''}
+                        
+                        ${priceHtml}
+                        
                         <p class="product-description">${product.description}</p>
+                        
+                        <div class="product-meta">
+                            <div class="product-detail-item">
+                                <span class="detail-label">Category:</span>
+                                <span class="detail-value">${product.category}</span>
+                            </div>
+                            <div class="product-detail-item">
+                                <span class="detail-label">Availability:</span>
+                                ${stockStatus}
+                            </div>
+                            ${dimensionsHtml}
+                        </div>
+                        
+                        ${sizesHtml}
+                        ${colorsHtml}
                         
                         <div class="quantity-selector">
                             <label>Quantity:</label>
@@ -190,6 +263,16 @@
                         </div>
                     </div>
                 `;
+                
+                // Set default selections if only one option
+                if (product.sizes && product.sizes.length === 1) {
+                    selectedSize = product.sizes[0];
+                    document.querySelectorAll('.size-btn').forEach(btn => btn.classList.add('selected'));
+                }
+                if (product.colors && product.colors.length === 1) {
+                    selectedColor = product.colors[0];
+                    document.querySelectorAll('.color-btn').forEach(btn => btn.classList.add('selected'));
+                }
                 
                 // Render related products
                 const relatedProducts = await getRelatedProducts(product.id, 4);
@@ -211,11 +294,23 @@
         initProduct();
         
         // Global functions for product details
-        let detailQuantity = 1;
-        
         function updateDetailQuantity(change) {
             detailQuantity = Math.max(1, detailQuantity + change);
             document.getElementById('detailQty').textContent = detailQuantity;
+        }
+        
+        function selectSize(size) {
+            selectedSize = size;
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.size === size);
+            });
+        }
+        
+        function selectColor(color) {
+            selectedColor = color;
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.color === color);
+            });
         }
         
         function changeImage(src) {
@@ -229,8 +324,32 @@
         }
         
         function addToCartFromDetail(productId) {
-            Cart.addItem(productId, detailQuantity);
-            setTimeout(() => window.location.href = 'cart.html', 1000);
+            // Get the product to validate selections
+            getProductById(productId).then(product => {
+                // Validate size if required
+                if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+                    alert('Please select a size');
+                    return;
+                }
+                
+                // Validate color if required
+                if (product.colors && product.colors.length > 0 && !selectedColor) {
+                    alert('Please select a color');
+                    return;
+                }
+                
+                // Create item with selected options
+                const cartItem = {
+                    id: String(productId),
+                    quantity: detailQuantity,
+                    size: selectedSize,
+                    color: selectedColor
+                };
+                
+                // Add to cart
+                Cart.addItem(productId, detailQuantity, selectedSize, selectedColor);
+                setTimeout(() => window.location.href = 'cart.html', 1000);
+            });
         }
     </script>
 </body>

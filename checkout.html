@@ -219,10 +219,19 @@
             // Render order items
             let itemsHTML = '';
             cartItems.forEach(item => {
+                // Build options string
+                let optionsText = '';
+                if (item.size) optionsText += `Size: ${item.size}`;
+                if (item.color) {
+                    if (optionsText) optionsText += ', ';
+                    optionsText += `Color: ${item.color}`;
+                }
+                
                 itemsHTML += `
                     <div class="order-item">
                         <div class="order-item-info">
                             <h4>${item.name}</h4>
+                            ${optionsText ? `<span>${optionsText}</span>` : ''}
                             <span>Qty: ${item.quantity}</span>
                         </div>
                         <div class="order-item-price">${formatPrice(item.total)}</div>
@@ -323,7 +332,10 @@
             message += `\n*Ordered Items*\n`;
             
             cartItems.forEach(item => {
-                message += `- ${item.name} x${item.quantity} = GHS ${item.total.toFixed(2)}\n`;
+                let itemDetails = `${item.name} x${item.quantity}`;
+                if (item.size) itemDetails += ` (Size: ${item.size})`;
+                if (item.color) itemDetails += ` (Color: ${item.color})`;
+                message += `- ${itemDetails} = GHS ${item.total.toFixed(2)}\n`;
             });
             
             message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;
@@ -358,7 +370,10 @@
             message += `\n*Ordered Items*\n`;
             
             cartItems.forEach(item => {
-                message += `- ${item.name} x${item.quantity} = GHS ${item.total.toFixed(2)}\n`;
+                let itemDetails = `${item.name} x${item.quantity}`;
+                if (item.size) itemDetails += ` (Size: ${item.size})`;
+                if (item.color) itemDetails += ` (Color: ${item.color})`;
+                message += `- ${itemDetails} = GHS ${item.total.toFixed(2)}\n`;
             });
             
             message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;
