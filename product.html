@@ -129,11 +129,8 @@
     <script src="js/data.js"></script>
     <script src="js/main.js"></script>
     <script>
-        // Product details state
-        let selectedSize = '';
-        let selectedColor = '';
-        let selectedDimension = '';
-        let detailQuantity = 1;
+        // Product details state - store quantities for each variant
+        let variantQuantities = {}; // { 'M': 5, 'L': 4, 'White': 3 }
         
         // Initialize product page with API data
         async function initProduct() {
@@ -165,31 +162,57 @@
                 // Build all images array (cover + additional)
                 const allImages = [product.image, ...(product.images || [])].filter((v, i, a) => a.indexOf(v) === i);
                 
-                // Render sizes selector if available
-                const sizesHtml = product.sizes && product.sizes.length > 0 ? `
+                // Build variants with quantity selectors if available
+                const hasSizes = product.sizes && product.sizes.length > 0;
+                const hasColors = product.colors && product.colors.length > 0;
+                
+                // Initialize variant quantities
+                if (hasSizes) {
+                    product.sizes.forEach(size => variantQuantities[`size_${size}`] = 0);
+                }
+                if (hasColors) {
+                    product.colors.forEach(color => variantQuantities[`color_${color}`] = 0);
+                }
+                
+                // Render sizes with quantity selectors if available
+                const sizesHtml = hasSizes ? `
                     <div class="product-option-group">
-                        <label>Size:</label>
-                        <div class="size-options">
+                        <label>Select Sizes & Quantities:</label>
+                        <div class="variant-quantity-grid">
                             ${product.sizes.map(size => `
-                                <button type="button" class="size-btn" data-size="${size}" onclick="selectSize('${size}')">${size}</button>
+                                <div class="variant-item">
+                                    <span class="variant-name">${size}</span>
+                                    <div class="quantity-controls small">
+                                        <button type="button" onclick="updateVariantQuantity('size_${size}', -1)">-</button>
+                                        <span id="qty_size_${size}">0</span>
+                                        <button type="button" onclick="updateVariantQuantity('size_${size}', 1)">+</button>
+                                    </div>
+                                </div>
                             `).join('')}
                         </div>
                     </div>
                 ` : '';
                 
-                // Render colors selector if available
-                const colorsHtml = product.colors && product.colors.length > 0 ? `
+                // Render colors with quantity selectors if available
+                const colorsHtml = hasColors ? `
                     <div class="product-option-group">
-                        <label>Color:</label>
-                        <div class="color-options">
+                        <label>Select Colors & Quantities:</label>
+                        <div class="variant-quantity-grid">
                             ${product.colors.map(color => `
-                                <button type="button" class="color-btn" data-color="${color}" onclick="selectColor('${color}')" title="${color}">${color}</button>
+                                <div class="variant-item">
+                                    <span class="variant-name">${color}</span>
+                                    <div class="quantity-controls small">
+                                        <button type="button" onclick="updateVariantQuantity('color_${color}', -1)">-</button>
+                                        <span id="qty_color_${color}">0</span>
+                                        <button type="button" onclick="updateVariantQuantity('color_${color}', 1)">+</button>
+                                    </div>
+                                </div>
                             `).join('')}
                         </div>
                     </div>
                 ` : '';
                 
-                // Render dimensions if available
+                // Render dimensions if available (as read-only info)
                 const dimensionsHtml = product.dimensions ? `
                     <div class="product-detail-item">
                         <span class="detail-label">Dimensions:</span>
@@ -248,31 +271,17 @@
                         ${sizesHtml}
                         ${colorsHtml}
                         
-                        <div class="quantity-selector">
-                            <label>Quantity:</label>
-                            <div class="quantity-controls">
-                                <button onclick="updateDetailQuantity(-1)">-</button>
-                                <span id="detailQty">1</span>
-                                <button onclick="updateDetailQuantity(1)">+</button>
-                            </div>
+                        <div class="selected-total">
+                            <span>Total Quantity:</span>
+                            <span id="totalSelectedQty">0</span>
                         </div>
                         
                         <div class="product-actions">
-                            <button class="btn btn-primary btn-lg" onclick="addToCartFromDetail('${product.id}')">Add to Cart</button>
+                            <button class="btn btn-primary btn-lg" onclick="addVariantsToCart('${product.id}')">Add to Cart</button>
                             <a href="shop.html" class="btn btn-outline btn-lg">Continue Shopping</a>
                         </div>
                     </div>
                 `;
-                
-                // Set default selections if only one option
-                if (product.sizes && product.sizes.length === 1) {
-                    selectedSize = product.sizes[0];
-                    document.querySelectorAll('.size-btn').forEach(btn => btn.classList.add('selected'));
-                }
-                if (product.colors && product.colors.length === 1) {
-                    selectedColor = product.colors[0];
-                    document.querySelectorAll('.color-btn').forEach(btn => btn.classList.add('selected'));
-                }
                 
                 // Render related products
                 const relatedProducts = await getRelatedProducts(product.id, 4);
@@ -294,23 +303,30 @@
         initProduct();
         
         // Global functions for product details
-        function updateDetailQuantity(change) {
-            detailQuantity = Math.max(1, detailQuantity + change);
-            document.getElementById('detailQty').textContent = detailQuantity;
+        function updateVariantQuantity(variantKey, change) {
+            const currentQty = variantQuantities[variantKey] || 0;
+            const newQty = Math.max(0, currentQty + change);
+            variantQuantities[variantKey] = newQty;
+            
+            // Update display
+            const qtyElement = document.getElementById(`qty_${variantKey}`);
+            if (qtyElement) {
+                qtyElement.textContent = newQty;
+            }
+            
+            // Update total
+            updateTotalSelectedQty();
         }
         
-        function selectSize(size) {
-            selectedSize = size;
-            document.querySelectorAll('.size-btn').forEach(btn => {
-                btn.classList.toggle('selected', btn.dataset.size === size);
+        function updateTotalSelectedQty() {
+            let total = 0;
+            Object.values(variantQuantities).forEach(qty => {
+                total += qty;
             });
-        }
-        
-        function selectColor(color) {
-            selectedColor = color;
-            document.querySelectorAll('.color-btn').forEach(btn => {
-                btn.classList.toggle('selected', btn.dataset.color === color);
-            });
+            const totalElement = document.getElementById('totalSelectedQty');
+            if (totalElement) {
+                totalElement.textContent = total;
+            }
         }
         
         function changeImage(src) {
@@ -323,33 +339,30 @@
             });
         }
         
-        function addToCartFromDetail(productId) {
-            // Get the product to validate selections
-            getProductById(productId).then(product => {
-                // Validate size if required
-                if (product.sizes && product.sizes.length > 0 && !selectedSize) {
-                    alert('Please select a size');
-                    return;
+        function addVariantsToCart(productId) {
+            // Collect all variants with quantities
+            const variants = [];
+            
+            for (const [key, qty] of Object.entries(variantQuantities)) {
+                if (qty > 0) {
+                    const parts = key.split('_');
+                    const type = parts[0];
+                    const value = parts.slice(1).join('_');
+                    variants.push({ type, value, quantity: qty });
                 }
-                
-                // Validate color if required
-                if (product.colors && product.colors.length > 0 && !selectedColor) {
-                    alert('Please select a color');
-                    return;
-                }
-                
-                // Create item with selected options
-                const cartItem = {
-                    id: String(productId),
-                    quantity: detailQuantity,
-                    size: selectedSize,
-                    color: selectedColor
-                };
-                
-                // Add to cart
-                Cart.addItem(productId, detailQuantity, selectedSize, selectedColor);
-                setTimeout(() => window.location.href = 'cart.html', 1000);
+            }
+            
+            if (variants.length === 0) {
+                alert('Please select at least one item with quantity');
+                return;
+            }
+            
+            // Add each variant to cart
+            variants.forEach(variant => {
+                Cart.addItem(productId, variant.quantity, variant.value, variant.type);
             });
+            
+            setTimeout(() => window.location.href = 'cart.html', 1000);
         }
     </script>
 </body>
