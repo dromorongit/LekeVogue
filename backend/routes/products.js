@@ -236,25 +236,8 @@ router.get('/:id', async (req, res) => {
 // @route   PUT /api/products/:id
 // @desc    Update a product
 // @access  Protected
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, uploadCoverImage, async (req, res) => {
   try {
-    // Handle file uploads manually for update
-    const { uploadCoverImage, uploadAdditionalImages } = require('../config/cloudinary');
-    
-    // Create wrapper to handle both file uploads
-    const handleUploads = async () => {
-      await new Promise((resolve, reject) => {
-        const multer = require('multer');
-        const storage = multer.memoryStorage();
-        const upload = multer({ storage });
-        upload.single('cover_image')(req, res, async (err) => {
-          if (err) return reject(err);
-          resolve();
-        });
-      });
-    };
-    
-    // Simple approach - just pass through for now
     const {
       product_name,
       brand,
@@ -283,7 +266,7 @@ router.put('/:id', protect, async (req, res) => {
 
     // Validation: Sales price cannot exceed original price
     const newOriginalPrice = parseFloat(original_price) || product.original_price;
-    const newSalesPrice = sales_price ? parseFloat(sales_price) : product.sales_price;
+    const newSalesPrice = salesPrice ? parseFloat(salesPrice) : product.sales_price;
     
     if (newSalesPrice && newOriginalPrice && newSalesPrice > newOriginalPrice) {
       return res.status(400).json({
@@ -300,8 +283,20 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Handle cover image update - use existing if no new file
-    let coverImageUrl = existing_cover_image || product.cover_image;
+    // Handle cover image update - use new uploaded image if available, otherwise use existing
+    let coverImageUrl = product.cover_image;
+    if (req.file && req.file.path) {
+      // New image was uploaded, use the new URL
+      coverImageUrl = req.file.path;
+      
+      // Optionally delete the old image from Cloudinary
+      if (product.cover_image) {
+        await deleteImage(product.cover_image);
+      }
+    } else if (existing_cover_image) {
+      // Use explicitly provided existing cover image URL
+      coverImageUrl = existing_cover_image;
+    }
 
     // Handle additional images update
     let additionalImages = product.additional_images;

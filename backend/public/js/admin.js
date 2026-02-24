@@ -207,8 +207,8 @@ function renderRecentProducts(products) {
       </td>
       <td>${product.category}</td>
       <td>
-        <span class="price">$${product.sales_price.toFixed(2)}</span>
-        ${product.original_price > product.sales_price ? `<br><span class="original-price">$${product.original_price.toFixed(2)}</span>` : ''}
+        <span class="price">GH₵${product.sales_price.toFixed(2)}</span>
+        ${product.original_price > product.sales_price ? `<br><span class="original-price">GH₵${product.original_price.toFixed(2)}</span>` : ''}
       </td>
       <td>
         <span class="stock-badge ${getStockClass(product.stock_quantity)}">${product.stock_quantity}</span>
@@ -285,8 +285,8 @@ function renderProductsTable(products) {
       </td>
       <td>${product.category}</td>
       <td>
-        <span class="price">$${product.sales_price.toFixed(2)}</span>
-        ${product.original_price > product.sales_price ? `<br><span class="original-price">$${product.original_price.toFixed(2)}</span>` : ''}
+        <span class="price">GH₵${product.sales_price.toFixed(2)}</span>
+        ${product.original_price > product.sales_price ? `<br><span class="original-price">GH₵${product.original_price.toFixed(2)}</span>` : ''}
       </td>
       <td>
         <span class="stock-badge ${getStockClass(product.stock_quantity)}">${product.stock_quantity}</span>
