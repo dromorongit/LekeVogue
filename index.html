@@ -203,19 +203,33 @@
     <script src="js/data.js"></script>
     <script src="js/main.js"></script>
     <script>
-        // Render categories
-        const categoriesGrid = document.getElementById('categoriesGrid');
-        if (categoriesGrid) {
-            const allCategories = [{ name: 'all', icon: '🛍️' }, ...categories];
-            UI.renderCategories(allCategories, categoriesGrid);
+        // Initialize homepage with API data
+        async function initHomepage() {
+            // Render categories
+            const categoriesGrid = document.getElementById('categoriesGrid');
+            if (categoriesGrid) {
+                const cats = await getCategories();
+                const allCategories = [{ name: 'all', icon: '🛍️' }, ...cats];
+                window.categories = allCategories;
+                UI.renderCategories(allCategories, categoriesGrid);
+            }
+            
+            // Render featured products from API
+            const featuredProducts = document.getElementById('featuredProducts');
+            if (featuredProducts) {
+                try {
+                    const featured = await getFeaturedProducts();
+                    const limited = featured.slice(0, 8);
+                    UI.renderProducts(limited, featuredProducts);
+                } catch (error) {
+                    console.error('Error loading featured products:', error);
+                    featuredProducts.innerHTML = '<p class="text-center">Loading products...</p>';
+                }
+            }
         }
         
-        // Render featured products
-        const featuredProducts = document.getElementById('featuredProducts');
-        if (featuredProducts) {
-            const featured = getFeaturedProducts().slice(0, 8);
-            UI.renderProducts(featured, featuredProducts);
-        }
+        // Initialize on page load
+        initHomepage();
     </script>
 </body>
 </html>

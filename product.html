@@ -129,7 +129,8 @@
     <script src="js/data.js"></script>
     <script src="js/main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // Initialize product page with API data
+        async function initProduct() {
             // Get product ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const productId = urlParams.get('id');
@@ -139,67 +140,75 @@
                 return;
             }
             
-            // Get product
-            const product = getProductById(productId);
-            
-            if (!product) {
-                window.location.href = 'shop.html';
-                return;
-            }
-            
-            // Update page title
-            document.title = `${product.name} - Leke Vogue Enterprise`;
-            document.getElementById('productCategory').textContent = product.category;
-            
-            // Render product details
-            const productDetails = document.getElementById('productDetails');
-            productDetails.innerHTML = `
-                <div class="product-gallery">
-                    <div class="main-image">
-                        <img src="${product.images ? product.images[0] : product.image}" alt="${product.name}" id="mainImage">
-                    </div>
-                    ${product.images && product.images.length > 1 ? `
-                        <div class="thumbnail-grid">
-                            ${product.images.map((img, index) => `
-                                <div class="thumbnail ${index === 0 ? 'active' : ''}" onclick="changeImage('${img}')">
-                                    <img src="${img}" alt="${product.name}">
-                                </div>
-                            `).join('')}
+            try {
+                // Get product from API
+                const product = await getProductById(productId);
+                
+                if (!product) {
+                    window.location.href = 'shop.html';
+                    return;
+                }
+                
+                // Update page title
+                document.title = `${product.name} - Leke Vogue Enterprise`;
+                document.getElementById('productCategory').textContent = product.category;
+                
+                // Render product details
+                const productDetails = document.getElementById('productDetails');
+                productDetails.innerHTML = `
+                    <div class="product-gallery">
+                        <div class="main-image">
+                            <img src="${product.images ? product.images[0] : product.image}" alt="${product.name}" id="mainImage">
                         </div>
-                    ` : ''}
-                </div>
-                <div class="product-info-details">
-                    <h1>${product.name}</h1>
-                    <p class="price">${formatPrice(product.price)}</p>
-                    <p class="product-description">${product.description}</p>
-                    
-                    <div class="quantity-selector">
-                        <label>Quantity:</label>
-                        <div class="quantity-controls">
-                            <button onclick="updateDetailQuantity(-1)">-</button>
-                            <span id="detailQty">1</span>
-                            <button onclick="updateDetailQuantity(1)">+</button>
+                        ${product.images && product.images.length > 1 ? `
+                            <div class="thumbnail-grid">
+                                ${product.images.map((img, index) => `
+                                    <div class="thumbnail ${index === 0 ? 'active' : ''}" onclick="changeImage('${img}')">
+                                        <img src="${img}" alt="${product.name}">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="product-info-details">
+                        <h1>${product.name}</h1>
+                        <p class="price">${formatPrice(product.price)}</p>
+                        <p class="product-description">${product.description}</p>
+                        
+                        <div class="quantity-selector">
+                            <label>Quantity:</label>
+                            <div class="quantity-controls">
+                                <button onclick="updateDetailQuantity(-1)">-</button>
+                                <span id="detailQty">1</span>
+                                <button onclick="updateDetailQuantity(1)">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="product-actions">
+                            <button class="btn btn-primary btn-lg" onclick="addToCartFromDetail('${product.id}')">Add to Cart</button>
+                            <a href="shop.html" class="btn btn-outline btn-lg">Continue Shopping</a>
                         </div>
                     </div>
-                    
-                    <div class="product-actions">
-                        <button class="btn btn-primary btn-lg" onclick="addToCartFromDetail()">Add to Cart</button>
-                        <a href="shop.html" class="btn btn-outline btn-lg">Continue Shopping</a>
-                    </div>
-                </div>
-            `;
-            
-            // Render related products
-            const relatedProducts = getRelatedProducts(product.id, 4);
-            const relatedContainer = document.getElementById('relatedProducts');
-            if (relatedProducts.length > 0) {
-                UI.renderProducts(relatedProducts, relatedContainer);
-            } else {
-                relatedContainer.innerHTML = '<p class="text-center" style="grid-column: 1/-1;">No related products found</p>';
+                `;
+                
+                // Render related products
+                const relatedProducts = await getRelatedProducts(product.id, 4);
+                const relatedContainer = document.getElementById('relatedProducts');
+                if (relatedProducts && relatedProducts.length > 0) {
+                    UI.renderProducts(relatedProducts, relatedContainer);
+                } else {
+                    relatedContainer.innerHTML = '<p class="text-center" style="grid-column: 1/-1;">No related products found</p>';
+                }
+                
+                UI.init();
+            } catch (error) {
+                console.error('Error loading product:', error);
+                document.getElementById('productDetails').innerHTML = '<p class="text-center">Error loading product. Please try again.</p>';
             }
-            
-            UI.init();
-        });
+        }
+        
+        // Initialize on page load
+        initProduct();
         
         // Global functions for product details
         let detailQuantity = 1;
@@ -219,10 +228,8 @@
             });
         }
         
-        function addToCartFromDetail() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const productId = urlParams.get('id');
-            Cart.addItem(parseInt(productId), detailQuantity);
+        function addToCartFromDetail(productId) {
+            Cart.addItem(productId, detailQuantity);
             setTimeout(() => window.location.href = 'cart.html', 1000);
         }
     </script>

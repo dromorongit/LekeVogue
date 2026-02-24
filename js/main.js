@@ -17,12 +17,13 @@ const Cart = {
     // Add item to cart
     addItem(productId, quantity = 1) {
         const cart = this.getCart();
-        const existingItem = cart.find(item => item.id === productId);
+        const existingItem = cart.find(item => item.id === productId || item.id === String(productId) || item.id === parseInt(productId));
         
         if (existingItem) {
             existingItem.quantity += quantity;
         } else {
-            cart.push({ id: productId, quantity: quantity });
+            // Store as string to handle both MongoDB ObjectId and integer IDs
+            cart.push({ id: String(productId), quantity: quantity });
         }
         
         this.saveCart(cart);
@@ -32,7 +33,8 @@ const Cart = {
     // Remove item from cart
     removeItem(productId) {
         let cart = this.getCart();
-        cart = cart.filter(item => item.id !== productId);
+        // Handle both string and integer IDs
+        cart = cart.filter(item => item.id !== productId && item.id !== String(productId) && item.id !== parseInt(productId));
         this.saveCart(cart);
         this.showToast('Item removed from cart', 'success');
         
@@ -46,7 +48,7 @@ const Cart = {
     // Update item quantity
     updateQuantity(productId, quantity) {
         const cart = this.getCart();
-        const item = cart.find(item => item.id === productId);
+        const item = cart.find(item => item.id === productId || item.id === String(productId) || item.id === parseInt(productId));
         
         if (item) {
             if (quantity <= 0) {
@@ -67,13 +69,32 @@ const Cart = {
     getCartItems() {
         const cart = this.getCart();
         return cart.map(item => {
-            const product = getProductById(item.id);
+            const product = window.getProductById ? window.getProductById(item.id) : null;
             return {
                 ...product,
                 quantity: item.quantity,
                 total: product ? product.price * item.quantity : 0
             };
         }).filter(item => item.id);
+    },
+    
+    // Get cart items with full product details (async version)
+    async getCartItemsAsync() {
+        const cart = this.getCart();
+        const items = [];
+        
+        for (const item of cart) {
+            const product = await getProductById(item.id);
+            if (product) {
+                items.push({
+                    ...product,
+                    quantity: item.quantity,
+                    total: product.price * item.quantity
+                });
+            }
+        }
+        
+        return items;
     },
     
     // Get cart total
@@ -242,9 +263,9 @@ const UI = {
     // Attach subcategory click listeners
     attachSubcategoryListeners() {
         document.querySelectorAll('.category-card').forEach(card => {
-            card.addEventListener('click', () => {
+            card.addEventListener('click', async () => {
                 const category = card.dataset.category;
-                const cat = categories.find(c => c.name === category);
+                const cat = window.categories.find(c => c.name === category);
                 
                 // Remove existing subcategories
                 document.querySelector('.subcategories-container')?.remove();
@@ -265,12 +286,13 @@ const UI = {
                         
                         // Add click listeners to subcategories
                         subcontainer.querySelectorAll('.subcategory-card').forEach(subCard => {
-                            subCard.addEventListener('click', () => {
+                            subCard.addEventListener('click', async () => {
                                 const subcategory = subCard.dataset.subcategory;
                                 const category = subCard.dataset.category;
                                 
                                 // Filter products by subcategory
-                                let filteredProducts = products.filter(p => p.category === category);
+                                let allProducts = await getProducts();
+                                let filteredProducts = allProducts.filter(p => p.category === category);
                                 
                                 // Update URL
                                 if (window.location.pathname.includes('shop.html')) {
@@ -319,8 +341,8 @@ const UI = {
                 return;
             }
             
-            searchTimeout = setTimeout(() => {
-                const results = searchProducts(query);
+            searchTimeout = setTimeout(async () => {
+                const results = await searchProducts(query);
                 
                 if (results.length > 0) {
                     searchResults.innerHTML = results.slice(0, 6).map(product => `
@@ -349,11 +371,11 @@ const UI = {
     },
     
     // Initialize category filter
-    initCategoryFilter() {
+    async initCategoryFilter() {
         const categoryCards = document.querySelectorAll('.category-card');
         
         categoryCards.forEach(card => {
-            card.addEventListener('click', () => {
+            card.addEventListener('click', async () => {
                 const category = card.dataset.category;
                 
                 // Update active state
@@ -363,9 +385,9 @@ const UI = {
                 // Filter products
                 let filteredProducts;
                 if (category === 'all') {
-                    filteredProducts = products;
+                    filteredProducts = await getProducts();
                 } else {
-                    filteredProducts = getProductsByCategory(category);
+                    filteredProducts = await getProductsByCategory(category);
                 }
                 
                 // Find products grid and render
@@ -457,11 +479,12 @@ window.Cart = Cart;
 window.UI = UI;
 window.Paystack = Paystack;
 window.WhatsApp = WhatsApp;
-window.products = products;
-window.categories = categories;
+window.getProducts = getProducts;
 window.getFeaturedProducts = getFeaturedProducts;
 window.getProductsByCategory = getProductsByCategory;
 window.getProductById = getProductById;
 window.searchProducts = searchProducts;
 window.getRelatedProducts = getRelatedProducts;
+window.getCategories = getCategories;
 window.formatPrice = formatPrice;
+window.API = API;
