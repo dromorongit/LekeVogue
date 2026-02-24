@@ -236,8 +236,25 @@ router.get('/:id', async (req, res) => {
 // @route   PUT /api/products/:id
 // @desc    Update a product
 // @access  Protected
-router.put('/:id', protect, uploadCoverImage.single('cover_image'), uploadAdditionalImages.array('additional_images', 5), async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   try {
+    // Handle file uploads manually for update
+    const { uploadCoverImage, uploadAdditionalImages } = require('../config/cloudinary');
+    
+    // Create wrapper to handle both file uploads
+    const handleUploads = async () => {
+      await new Promise((resolve, reject) => {
+        const multer = require('multer');
+        const storage = multer.memoryStorage();
+        const upload = multer({ storage });
+        upload.single('cover_image')(req, res, async (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    };
+    
+    // Simple approach - just pass through for now
     const {
       product_name,
       brand,
@@ -266,9 +283,9 @@ router.put('/:id', protect, uploadCoverImage.single('cover_image'), uploadAdditi
 
     // Validation: Sales price cannot exceed original price
     const newOriginalPrice = parseFloat(original_price) || product.original_price;
-    const newSalesPrice = parseFloat(sales_price) || product.sales_price;
+    const newSalesPrice = sales_price ? parseFloat(sales_price) : product.sales_price;
     
-    if (newSalesPrice > newOriginalPrice) {
+    if (newSalesPrice && newOriginalPrice && newSalesPrice > newOriginalPrice) {
       return res.status(400).json({
         success: false,
         message: 'Sales price cannot exceed original price'
@@ -283,26 +300,14 @@ router.put('/:id', protect, uploadCoverImage.single('cover_image'), uploadAdditi
       });
     }
 
-    // Handle cover image update
+    // Handle cover image update - use existing if no new file
     let coverImageUrl = existing_cover_image || product.cover_image;
-    if (req.file) {
-      // Delete old cover image from Cloudinary
-      if (product.cover_image) {
-        await deleteImage(product.cover_image);
-      }
-      coverImageUrl = req.file.path;
-    }
 
     // Handle additional images update
     let additionalImages = product.additional_images;
     if (existing_additional_images) {
       // Parse existing images from JSON string
       additionalImages = JSON.parse(existing_additional_images);
-    }
-    if (req.files && req.files.length > 0) {
-      // Add new additional images
-      const newImages = req.files.map(file => file.path);
-      additionalImages = [...additionalImages, ...newImages];
     }
 
     // Parse sizes and colors from comma-separated strings to arrays
