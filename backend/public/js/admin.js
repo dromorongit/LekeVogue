@@ -447,16 +447,23 @@ async function handleProductSubmit(e) {
   const productId = document.getElementById('productId').value;
   const isEdit = !!productId;
   
-  // Validate
+  // Validate - Brand and Sales Price are now optional
   const productName = document.getElementById('productName').value;
   const brand = document.getElementById('brand').value;
   const shortDescription = document.getElementById('shortDescription').value;
   const originalPrice = parseFloat(document.getElementById('originalPrice').value);
-  const salesPrice = parseFloat(document.getElementById('salesPrice').value);
+  const salesPrice = document.getElementById('salesPrice').value ? parseFloat(document.getElementById('salesPrice').value) : null;
   const category = document.getElementById('category').value;
   const stockQuantity = parseInt(document.getElementById('stockQuantity').value);
   
-  if (salesPrice > originalPrice) {
+  // Validate original price if provided
+  if (!originalPrice && originalPrice !== 0) {
+    showToast('Original price is required', 'error');
+    return;
+  }
+  
+  // Validate sales price if provided (can't exceed original)
+  if (salesPrice !== null && salesPrice > originalPrice) {
     showToast('Sales price cannot exceed original price', 'error');
     return;
   }
@@ -471,13 +478,13 @@ async function handleProductSubmit(e) {
   formData.append('brand', brand);
   formData.append('short_description', shortDescription);
   formData.append('original_price', originalPrice);
-  formData.append('sales_price', salesPrice);
+  formData.append('sales_price', salesPrice !== null ? salesPrice : originalPrice);
   formData.append('category', category);
   formData.append('subcategory', document.getElementById('subcategory').value);
   formData.append('sizes', document.getElementById('sizes').value);
   formData.append('colors', document.getElementById('colors').value);
   formData.append('dimensions_in_inches', document.getElementById('dimensions').value);
-  formData.append('stock_quantity', stockQuantity);
+  formData.append('stock_quantity', stockQuantity || 0);
   formData.append('featured_product', document.getElementById('featuredProduct').checked);
   
   if (coverImageFile) {

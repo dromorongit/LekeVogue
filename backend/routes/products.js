@@ -11,7 +11,7 @@ const {
 // @route   POST /api/products
 // @desc    Create a new product
 // @access  Protected
-router.post('/', protect, uploadCoverImage.single('cover_image'), uploadAdditionalImages.array('additional_images', 5), async (req, res) => {
+router.post('/', protect, uploadCoverImage, async (req, res) => {
   try {
     const {
       product_name,
@@ -29,15 +29,15 @@ router.post('/', protect, uploadCoverImage.single('cover_image'), uploadAddition
     } = req.body;
 
     // Validation: Required fields
-    if (!product_name || !short_description || !original_price || !sales_price || !category || !stock_quantity) {
+    if (!product_name || !short_description || !original_price || !category || !stock_quantity) {
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields'
       });
     }
 
-    // Validation: Sales price cannot exceed original price
-    if (parseFloat(sales_price) > parseFloat(original_price)) {
+    // Validation: Sales price cannot exceed original price (only if both are provided)
+    if (sales_price && original_price && parseFloat(sales_price) > parseFloat(original_price)) {
       return res.status(400).json({
         success: false,
         message: 'Sales price cannot exceed original price'
@@ -63,7 +63,7 @@ router.post('/', protect, uploadCoverImage.single('cover_image'), uploadAddition
     // Get cover image URL from Cloudinary
     const coverImageUrl = req.file.path;
 
-    // Get additional images URLs from Cloudinary
+    // Get additional images URLs
     const additionalImages = req.files ? req.files.map(file => file.path) : [];
 
     // Parse sizes and colors from comma-separated strings to arrays
@@ -72,16 +72,16 @@ router.post('/', protect, uploadCoverImage.single('cover_image'), uploadAddition
 
     const product = new Product({
       product_name,
-      brand,
+      brand: brand || '',
       short_description,
-      original_price: parseFloat(original_price),
-      sales_price: parseFloat(sales_price),
+      original_price: parseFloat(original_price) || 0,
+      sales_price: parseFloat(sales_price) || parseFloat(original_price) || 0,
       category,
       subcategory: subcategory || '',
       sizes: sizesArray,
       colors: colorsArray,
       dimensions_in_inches: dimensions_in_inches || '',
-      stock_quantity: parseInt(stock_quantity),
+      stock_quantity: parseInt(stock_quantity) || 0,
       cover_image: coverImageUrl,
       additional_images: additionalImages,
       featured_product: featured_product === 'true' || featured_product === true

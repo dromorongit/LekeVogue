@@ -25,8 +25,10 @@ const productSchema = new mongoose.Schema({
   },
   sales_price: {
     type: Number,
-    required: [true, 'Sales price is required'],
-    min: [0, 'Sales price must be a positive number']
+    min: [0, 'Sales price must be a positive number'],
+    default: function() {
+      return this.original_price;
+    }
   },
   category: {
     type: String,
@@ -111,11 +113,15 @@ productSchema.index({ product_name: 'text', brand: 'text', short_description: 't
 
 // Validate that sales price doesn't exceed original price
 productSchema.pre('save', function(next) {
-  if (this.sales_price > this.original_price) {
+  if (this.sales_price && this.original_price && this.sales_price > this.original_price) {
     const error = new Error('Sales price cannot exceed original price');
     error.name = 'ValidationError';
     next(error);
   } else {
+    // If sales_price is not provided, use original_price
+    if (!this.sales_price) {
+      this.sales_price = this.original_price;
+    }
     next();
   }
 });
