@@ -22,6 +22,11 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  max-width: 100vw;
+}
+
+html {
+  overflow-x: hidden;
 }
 
 body {
@@ -29,6 +34,9 @@ body {
   background-color: var(--dark-bg);
   color: var(--text-light);
   line-height: 1.6;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* Login Page */
@@ -781,10 +789,22 @@ tbody tr:hover {
 }
 
 @media (max-width: 768px) {
-  /* Prevent horizontal scrolling */
+  /* Prevent horizontal scrolling - aggressive approach */
   html, body {
-    overflow-x: hidden;
-    max-width: 100vw;
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+
+  * {
+    max-width: 100vw !important;
+  }
+
+  /* Dashboard container */
+  .dashboard-container {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
   }
 
   /* Mobile Header & Hamburger Menu */
@@ -794,6 +814,8 @@ tbody tr:hover {
     gap: 16px;
     margin-bottom: 24px;
     padding: 16px 0;
+    width: 100%;
+    max-width: 100vw;
   }
 
   .mobile-header h1 {
@@ -927,9 +949,39 @@ tbody tr:hover {
   .main-content {
     margin-left: 0;
     padding: 16px;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Ensure cards don't overflow */
+  .card {
+    max-width: 100%;
+    overflow: hidden;
     width: 100%;
-    max-width: 100vw;
-    overflow-x: hidden;
+  }
+
+  /* Ensure form elements don't overflow */
+  .form-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .form-group {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .form-group.full-width {
+    grid-column: 1;
   }
 
   .page-header {
@@ -997,6 +1049,67 @@ tbody tr:hover {
   .card {
     max-width: 100%;
     overflow: hidden;
+  }
+
+  /* Image upload */
+  .image-upload-area {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .image-preview {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  /* Buttons */
+  .btn {
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .btn-success {
+    width: 100%;
+  }
+
+  /* Search and filter */
+  .search-filter {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .search-box {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .search-box input {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .filter-select {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .stat-card {
+    width: 100%;
+    max-width: 100%;
   }
 
   /* Table scroll handling */
