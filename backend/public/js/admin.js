@@ -69,6 +69,11 @@ function setupEventListeners() {
   // Product form
   productForm.addEventListener('submit', handleProductSubmit);
   
+  // View All and Add New Product buttons
+  document.getElementById('viewAllBtn').addEventListener('click', () => showPage('products'));
+  document.getElementById('addNewProductBtn').addEventListener('click', () => showPage('add-product'));
+  document.getElementById('cancelBtn').addEventListener('click', () => showPage('products'));
+  
   // Image upload areas
   setupImageUpload();
 }
@@ -323,16 +328,24 @@ function renderProductsTable(products) {
       </td>
       <td>
         <div class="actions">
-          <button class="edit-btn" onclick="editProduct('${product._id}')" title="Edit">
+          <button class="edit-btn" data-id="${product._id}" title="Edit">
             Edit
           </button>
-          <button class="delete-btn" onclick="deleteProduct('${product._id}')" title="Delete">
+          <button class="delete-btn" data-id="${product._id}" title="Delete">
             Delete
           </button>
         </div>
       </td>
     </tr>
   `).join('');
+
+  // Add event listeners to buttons
+  tbody.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => editProduct(btn.dataset.id));
+  });
+  tbody.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => deleteProduct(btn.dataset.id));
+  });
 }
 
 function renderPagination(page, pages) {
@@ -344,26 +357,35 @@ function renderPagination(page, pages) {
   }
   
   let html = `
-    <button onclick="loadProducts(${page - 1})" ${page === 1 ? 'disabled' : ''}>
+    <button class="page-btn" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>
       <i class="fas fa-chevron-left"></i>
     </button>
   `;
   
   for (let i = 1; i <= pages; i++) {
     if (i === 1 || i === pages || (i >= page - 1 && i <= page + 1)) {
-      html += `<button onclick="loadProducts(${i})" ${i === page ? 'style="background: var(--primary-purple);"' : ''}>${i}</button>`;
+      html += `<button class="page-btn" data-page="${i}" ${i === page ? 'style="background: var(--primary-purple);"' : ''}>${i}</button>`;
     } else if (i === page - 2 || i === page + 2) {
       html += `<span>...</span>`;
     }
   }
   
   html += `
-    <button onclick="loadProducts(${page + 1})" ${page === pages ? 'disabled' : ''}>
+    <button class="page-btn" data-page="${page + 1}" ${page === pages ? 'disabled' : ''}>
       <i class="fas fa-chevron-right"></i>
     </button>
   `;
   
   pagination.innerHTML = html;
+  
+  // Add event listeners to pagination buttons
+  pagination.querySelectorAll('.page-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!btn.disabled) {
+        loadProducts(parseInt(btn.dataset.page));
+      }
+    });
+  });
 }
 
 function handleSearch(e) {

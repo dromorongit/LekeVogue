@@ -101,7 +101,7 @@
         <div class="card">
           <div class="card-header">
             <h2>Recent Products</h2>
-            <a class="btn btn-primary btn-sm" href="#" onclick="showPage('products'); return false;">
+            <a class="btn btn-primary btn-sm" id="viewAllBtn">
               <i class="fas fa-eye"></i> View All
             </a>
           </div>
@@ -130,7 +130,7 @@
       <div id="productsView" style="display: none;">
         <div class="page-header">
           <h1>All Products</h1>
-          <a class="btn btn-primary" href="#" onclick="showPage('add-product'); return false;">
+          <a class="btn btn-primary" id="addNewProductBtn">
             <i class="fas fa-plus"></i> Add New Product
           </a>
         </div>
@@ -302,7 +302,7 @@
                 <button type="submit" class="btn btn-primary" id="submitBtn">
                   <i class="fas fa-save"></i> Save Product
                 </button>
-                <button type="button" class="btn btn-secondary" onclick="showPage('products');">
+                <button type="button" class="btn btn-secondary" id="cancelBtn">
                   Cancel
                 </button>
               </div>
