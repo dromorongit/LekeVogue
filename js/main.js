@@ -172,6 +172,11 @@ const UI = {
     
     // Create product card HTML
     createProductCard(product) {
+        const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+        const priceHtml = hasDiscount 
+            ? `<p class="product-price">${formatPrice(product.price)} <span class="original-price">${formatPrice(product.originalPrice)}</span></p>`
+            : `<p class="product-price">${formatPrice(product.price)}</p>`;
+        
         return `
             <div class="product-card" data-id="${product.id}">
                 <div class="product-image">
@@ -182,7 +187,7 @@ const UI = {
                 </div>
                 <div class="product-info">
                     <h3>${product.name}</h3>
-                    <p class="product-price">${formatPrice(product.price)}</p>
+                    ${priceHtml}
                     <div class="quantity-controls">
                         <button class="qty-btn minus" data-id="${product.id}">-</button>
                         <span class="qty-value" data-id="${product.id}">1</span>
@@ -356,15 +361,20 @@ const UI = {
                 const results = await searchProducts(query);
                 
                 if (results.length > 0) {
-                    searchResults.innerHTML = results.slice(0, 6).map(product => `
+                    searchResults.innerHTML = results.slice(0, 6).map(product => {
+                        const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+                        const priceHtml = hasDiscount 
+                            ? `${formatPrice(product.price)} <span class="original-price">${formatPrice(product.originalPrice)}</span>`
+                            : formatPrice(product.price);
+                        return `
                         <a href="product.html?id=${product.id}" class="search-result-item">
                             <img src="${product.image}" alt="${product.name}">
                             <div class="search-result-info">
                                 <h4>${product.name}</h4>
-                                <p>${formatPrice(product.price)}</p>
+                                <p>${priceHtml}</p>
                             </div>
                         </a>
-                    `).join('');
+                    `}).join('');
                     searchResults.classList.add('active');
                 } else {
                     searchResults.innerHTML = '<p style="padding: 15px; text-align: center;">No products found</p>';

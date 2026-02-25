@@ -228,7 +228,7 @@
                 // Price display (show original price if on sale)
                 const priceHtml = product.originalPrice && product.originalPrice > product.price
                     ? `<p class="price">${formatPrice(product.price)}</p>
-                       <p class="original-price">Was: ${formatPrice(product.originalPrice)}</p>`
+                       <p class="original-price">${formatPrice(product.originalPrice)}</p>`
                     : `<p class="price">${formatPrice(product.price)}</p>`;
                 
                 productDetails.innerHTML = `
