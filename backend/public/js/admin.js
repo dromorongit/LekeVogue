@@ -579,7 +579,11 @@ async function editProduct(id) {
   try {
     showLoading();
     
-    const response = await fetch(`${API_BASE}/products/${id}`);
+    const response = await fetch(`${API_BASE}/products/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
     const data = await response.json();
     
     if (data.success) {
