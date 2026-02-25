@@ -28,7 +28,26 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
   // Login form
   loginForm.addEventListener('submit', handleLogin);
-  
+
+  // Hamburger menu
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const sidebar = document.querySelector('.sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+  if (hamburgerBtn) {
+    hamburgerBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+      sidebarOverlay.classList.toggle('active');
+    });
+  }
+
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => {
+      sidebar.classList.remove('active');
+      sidebarOverlay.classList.remove('active');
+    });
+  }
+
   // Logout
   document.getElementById('logoutBtn').addEventListener('click', handleLogout);
   
@@ -132,6 +151,14 @@ function showDashboardPage() {
 }
 
 function showPage(page) {
+  // Close mobile sidebar when navigating
+  const sidebar = document.querySelector('.sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  if (window.innerWidth <= 768) {
+    sidebar.classList.remove('active');
+    sidebarOverlay.classList.remove('active');
+  }
+
   // Update navigation active state
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.remove('active');

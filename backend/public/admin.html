@@ -33,6 +33,9 @@
 
   <!-- Dashboard -->
   <div id="dashboardPage" class="dashboard-container" style="display: none;">
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-logo">
@@ -62,6 +65,14 @@
 
     <!-- Main Content -->
     <main class="main-content">
+      <!-- Mobile Header with Hamburger Menu -->
+      <header class="mobile-header">
+        <button class="hamburger-btn" id="hamburgerBtn">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1>Leke<span>Vogue</span></h1>
+      </header>
+
       <!-- Dashboard View -->
       <div id="dashboardView">
         <div class="page-header">
