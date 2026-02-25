@@ -318,6 +318,133 @@
     <div class="spinner"></div>
   </div>
 
+  <!-- Edit Product Modal -->
+  <div id="editProductModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="editFormTitle">Edit Product</h2>
+        <button class="modal-close" id="closeEditModal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="editProductForm" enctype="multipart/form-data">
+          <input type="hidden" id="editProductId">
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Product Name *</label>
+              <input type="text" id="editProductName" placeholder="Enter product name" required>
+            </div>
+            <div class="form-group">
+              <label>Brand</label>
+              <input type="text" id="editBrand" placeholder="Enter brand name">
+            </div>
+            <div class="form-group full-width">
+              <label>Short Description *</label>
+              <textarea id="editShortDescription" rows="3" placeholder="Enter short description" required></textarea>
+            </div>
+            <div class="form-group">
+              <label>Original Price *</label>
+              <input type="number" id="editOriginalPrice" placeholder="0.00" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+              <label>Sales Price</label>
+              <input type="number" id="editSalesPrice" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label>Category *</label>
+              <select id="editCategory" required>
+                <option value="">Select Category</option>
+                <option value="Shoes">Shoes</option>
+                <option value="Bags">Bags</option>
+                <option value="T-Shirts">T-Shirts</option>
+                <option value="Dresses">Dresses</option>
+                <option value="Jeans">Jeans</option>
+                <option value="Underwear">Underwear</option>
+                <option value="Wigs">Wigs</option>
+                <option value="Hair Bundles">Hair Bundles</option>
+                <option value="Hair Extensions">Hair Extensions</option>
+                <option value="Hair Products & Tools">Hair Products & Tools</option>
+                <option value="Belts">Belts</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Subcategory</label>
+              <select id="editSubcategory">
+                <option value="">Select Subcategory</option>
+                <option value="Heels">Heels</option>
+                <option value="Slipper Heels">Slipper Heels</option>
+                <option value="Flat Slippers">Flat Slippers</option>
+                <option value="Flat Sandals">Flat Sandals</option>
+                <option value="Block Sandals">Block Sandals</option>
+                <option value="Block Slippers">Block Slippers</option>
+                <option value="Flat Shoes">Flat Shoes</option>
+                <option value="Unisex Slippers">Unisex Slippers</option>
+                <option value="Sneakers">Sneakers</option>
+                <option value="Men's Executive Shoes">Men's Executive Shoes</option>
+                <option value="Men's Slippers">Men's Slippers</option>
+                <option value="Men's Sandals">Men's Sandals</option>
+                <option value="Kids Shoes (Girls)">Kids Shoes (Girls)</option>
+                <option value="Kids Shoes (Boys)">Kids Shoes (Boys)</option>
+                <option value="Kids Shoes (Unisex)">Kids Shoes (Unisex)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Sizes</label>
+              <input type="text" id="editSizes" placeholder="e.g., S, M, L, XL (comma separated)">
+            </div>
+            <div class="form-group">
+              <label>Colors</label>
+              <input type="text" id="editColors" placeholder="e.g., Red, Blue, Black (comma separated)">
+            </div>
+            <div class="form-group">
+              <label>Dimensions (in inches)</label>
+              <input type="text" id="editDimensions" placeholder="e.g., 10 x 5 x 2 inches">
+            </div>
+            <div class="form-group">
+              <label>Stock Quantity *</label>
+              <input type="number" id="editStockQuantity" placeholder="0" min="0" required>
+            </div>
+            <div class="form-group full-width">
+              <label>Cover Image</label>
+              <div class="image-upload-area" id="editCoverImageUpload">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click to upload cover image</p>
+                <input type="file" id="editCoverImage" accept="image/*" style="display: none;">
+              </div>
+              <div class="image-preview" id="editCoverImagePreview"></div>
+            </div>
+            <div class="form-group full-width">
+              <label>Additional Images</label>
+              <div class="image-upload-area" id="editAdditionalImagesUpload">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click to upload additional images (max 5)</p>
+                <input type="file" id="editAdditionalImages" accept="image/*" multiple style="display: none;">
+              </div>
+              <div class="image-preview" id="editAdditionalImagesPreview"></div>
+            </div>
+            <div class="form-group full-width">
+              <label class="checkbox-label">
+                <input type="checkbox" id="editFeaturedProduct">
+                <span>Mark as Featured Product</span>
+              </label>
+            </div>
+          </div>
+
+          <div style="margin-top: 24px; display: flex; gap: 12px;">
+            <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+              <i class="fas fa-save"></i> Update Product
+            </button>
+            <button type="button" class="btn btn-secondary" id="cancelEditBtn">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 

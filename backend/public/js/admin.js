@@ -22,7 +22,202 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   setupEventListeners();
+  setupEditModal();
 });
+
+// Edit Modal Functions
+function setupEditModal() {
+  const modal = document.getElementById('editProductModal');
+  const closeBtn = document.getElementById('closeEditModal');
+  const cancelBtn = document.getElementById('cancelEditBtn');
+  const form = document.getElementById('editProductForm');
+
+  closeBtn.addEventListener('click', closeEditModal);
+  cancelBtn.addEventListener('click', closeEditModal);
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeEditModal();
+    }
+  });
+
+  form.addEventListener('submit', handleEditProductSubmit);
+
+  // Setup image upload for edit modal
+  setupEditImageUpload();
+}
+
+function openEditModal() {
+  const modal = document.getElementById('editProductModal');
+  modal.classList.add('active');
+}
+
+function closeEditModal() {
+  const modal = document.getElementById('editProductModal');
+  modal.classList.remove('active');
+  document.getElementById('editProductForm').reset();
+  document.getElementById('editCoverImagePreview').innerHTML = '';
+  document.getElementById('editAdditionalImagesPreview').innerHTML = '';
+}
+
+let editCoverImageFile = null;
+let editAdditionalImagesFiles = [];
+
+function setupEditImageUpload() {
+  const coverUpload = document.getElementById('editCoverImageUpload');
+  const coverInput = document.getElementById('editCoverImage');
+  
+  coverUpload.addEventListener('click', () => coverInput.click());
+  coverInput.addEventListener('change', (e) => {
+    if (e.target.files[0]) {
+      editCoverImageFile = e.target.files[0];
+      previewImage(editCoverImageFile, 'editCoverImagePreview');
+    }
+  });
+
+  const additionalUpload = document.getElementById('editAdditionalImagesUpload');
+  const additionalInput = document.getElementById('editAdditionalImages');
+  
+  additionalUpload.addEventListener('click', () => additionalInput.click());
+  additionalInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      editAdditionalImagesFiles = Array.from(e.target.files).slice(0, 5);
+      previewMultipleImages(editAdditionalImagesFiles, 'editAdditionalImagesPreview');
+    }
+  });
+}
+
+async function handleEditProductSubmit(e) {
+  e.preventDefault();
+  
+  const productId = document.getElementById('editProductId').value;
+  
+  const productName = document.getElementById('editProductName').value;
+  const brand = document.getElementById('editBrand').value;
+  const shortDescription = document.getElementById('editShortDescription').value;
+  const originalPrice = parseFloat(document.getElementById('editOriginalPrice').value);
+  const salesPrice = document.getElementById('editSalesPrice').value ? parseFloat(document.getElementById('editSalesPrice').value) : null;
+  const category = document.getElementById('editCategory').value;
+  const stockQuantity = parseInt(document.getElementById('editStockQuantity').value);
+  
+  if (!originalPrice && originalPrice !== 0) {
+    showToast('Original price is required', 'error');
+    return;
+  }
+  
+  if (salesPrice !== null && salesPrice > originalPrice) {
+    showToast('Sales price cannot exceed original price', 'error');
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('product_name', productName);
+  formData.append('brand', brand);
+  formData.append('short_description', shortDescription);
+  formData.append('original_price', originalPrice);
+  formData.append('sales_price', salesPrice !== null ? salesPrice : originalPrice);
+  formData.append('category', category);
+  formData.append('subcategory', document.getElementById('editSubcategory').value);
+  formData.append('sizes', document.getElementById('editSizes').value);
+  formData.append('colors', document.getElementById('editColors').value);
+  formData.append('dimensions_in_inches', document.getElementById('editDimensions').value);
+  formData.append('stock_quantity', stockQuantity || 0);
+  formData.append('featured_product', document.getElementById('editFeaturedProduct').checked);
+  
+  if (editCoverImageFile) {
+    formData.append('cover_image', editCoverImageFile);
+  }
+  
+  editAdditionalImagesFiles.forEach(file => {
+    formData.append('additional_images', file);
+  });
+  
+  try {
+    showLoading();
+    
+    const response = await fetch(`${API_BASE}/products/${productId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('Product updated successfully!', 'success');
+      closeEditModal();
+      loadProducts(currentPage);
+    } else {
+      showToast(data.message || 'Failed to update product', 'error');
+    }
+  } catch (error) {
+    console.error('Update product error:', error);
+    showToast('Failed to update product', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// Modify editProduct function to open modal
+async function editProduct(id) {
+  try {
+    showLoading();
+    
+    const response = await fetch(`${API_BASE}/products/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      const product = data.data;
+      
+      document.getElementById('editProductId').value = product._id;
+      document.getElementById('editProductName').value = product.product_name;
+      document.getElementById('editBrand').value = product.brand || '';
+      document.getElementById('editShortDescription').value = product.short_description;
+      document.getElementById('editOriginalPrice').value = product.original_price;
+      document.getElementById('editSalesPrice').value = product.sales_price;
+      document.getElementById('editCategory').value = product.category;
+      document.getElementById('editSubcategory').value = product.subcategory || '';
+      document.getElementById('editSizes').value = product.sizes ? product.sizes.join(', ') : '';
+      document.getElementById('editColors').value = product.colors ? product.colors.join(', ') : '';
+      document.getElementById('editDimensions').value = product.dimensions_in_inches || '';
+      document.getElementById('editStockQuantity').value = product.stock_quantity;
+      document.getElementById('editFeaturedProduct').checked = product.featured_product;
+      
+      // Show existing cover image
+      if (product.cover_image) {
+        document.getElementById('editCoverImagePreview').innerHTML = `
+          <div class="image-preview-item">
+            <img src="${product.cover_image}" alt="Current Cover">
+          </div>
+        `;
+      }
+      
+      // Show existing additional images
+      if (product.additional_images && product.additional_images.length > 0) {
+        document.getElementById('editAdditionalImagesPreview').innerHTML = product.additional_images.map(img => `
+          <div class="image-preview-item">
+            <img src="${img}" alt="Additional Image">
+          </div>
+        `).join('');
+      }
+      
+      openEditModal();
+    } else {
+      showToast('Failed to load product', 'error');
+    }
+  } catch (error) {
+    console.error('Edit product error:', error);
+    showToast('Failed to load product', 'error');
+  } finally {
+    hideLoading();
+  }
+}
 
 // Event Listeners
 function setupEventListeners() {
@@ -575,66 +770,10 @@ async function handleProductSubmit(e) {
   }
 }
 
+// Legacy function - now uses modal
 async function editProduct(id) {
-  try {
-    showLoading();
-    
-    const response = await fetch(`${API_BASE}/products/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    });
-    const data = await response.json();
-    
-    if (data.success) {
-      const product = data.data;
-      
-      document.getElementById('productId').value = product._id;
-      document.getElementById('formTitle').textContent = 'Edit Product';
-      document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Update Product';
-      
-      document.getElementById('productName').value = product.product_name;
-      document.getElementById('brand').value = product.brand;
-      document.getElementById('shortDescription').value = product.short_description;
-      document.getElementById('originalPrice').value = product.original_price;
-      document.getElementById('salesPrice').value = product.sales_price;
-      document.getElementById('category').value = product.category;
-      document.getElementById('subcategory').value = product.subcategory || '';
-      document.getElementById('sizes').value = product.sizes ? product.sizes.join(', ') : '';
-      document.getElementById('colors').value = product.colors ? product.colors.join(', ') : '';
-      document.getElementById('dimensions').value = product.dimensions_in_inches || '';
-      document.getElementById('stockQuantity').value = product.stock_quantity;
-      document.getElementById('featuredProduct').checked = product.featured_product;
-      
-      // Show existing cover image
-      if (product.cover_image) {
-        document.getElementById('coverImagePreview').innerHTML = `
-          <div class="image-preview-item">
-            <img src="${product.cover_image}" alt="Current Cover">
-          </div>
-        `;
-      }
-      
-      // Show existing additional images
-      if (product.additional_images && product.additional_images.length > 0) {
-        const preview = document.getElementById('additionalImagesPreview');
-        preview.innerHTML = product.additional_images.map(img => `
-          <div class="image-preview-item">
-            <img src="${img}" alt="Additional Image">
-          </div>
-        `).join('');
-      }
-      
-      showPage('add-product');
-    } else {
-      showToast('Failed to load product', 'error');
-    }
-  } catch (error) {
-    console.error('Edit product error:', error);
-    showToast('Failed to load product', 'error');
-  } finally {
-    hideLoading();
-  }
+  // This is now handled by the modal version above
+  return;
 }
 
 async function deleteProduct(id) {
