@@ -116,7 +116,10 @@ async function handleEditProductSubmit(e) {
   formData.append('brand', brand);
   formData.append('short_description', shortDescription);
   formData.append('original_price', originalPrice);
-  formData.append('sales_price', salesPrice !== null ? salesPrice : originalPrice);
+  // Only append sales_price if explicitly provided
+  if (salesPrice !== null) {
+    formData.append('sales_price', salesPrice);
+  }
   formData.append('category', category);
   formData.append('subcategory', document.getElementById('editSubcategory').value);
   formData.append('sizes', document.getElementById('editSizes').value);
@@ -181,7 +184,8 @@ async function editProduct(id) {
       document.getElementById('editBrand').value = product.brand || '';
       document.getElementById('editShortDescription').value = product.short_description;
       document.getElementById('editOriginalPrice').value = product.original_price;
-      document.getElementById('editSalesPrice').value = product.sales_price;
+      // Only set sales_price if it has a value (not null)
+      document.getElementById('editSalesPrice').value = product.sales_price || '';
       document.getElementById('editCategory').value = product.category;
       document.getElementById('editSubcategory').value = product.subcategory || '';
       document.getElementById('editSizes').value = product.sizes ? product.sizes.join(', ') : '';
@@ -422,7 +426,14 @@ async function loadDashboard() {
 
 function renderRecentProducts(products) {
   const tbody = document.getElementById('recentProductsTable');
-  tbody.innerHTML = products.map(product => `
+  tbody.innerHTML = products.map(product => {
+    // Calculate display price: use sales_price if it's less than original_price
+    const displayPrice = (product.sales_price && product.sales_price < product.original_price) 
+      ? product.sales_price 
+      : product.original_price;
+    const showOriginal = product.sales_price && product.sales_price < product.original_price;
+    
+    return `
     <tr>
       <td>
         <div class="product-info">
@@ -435,8 +446,8 @@ function renderRecentProducts(products) {
       </td>
       <td>${product.category}</td>
       <td>
-        <span class="price">GH₵${product.sales_price.toFixed(2)}</span>
-        ${product.original_price > product.sales_price ? `<br><span class="original-price">GH₵${product.original_price.toFixed(2)}</span>` : ''}
+        <span class="price">GH₵${displayPrice.toFixed(2)}</span>
+        ${showOriginal ? `<br><span class="original-price">GH₵${product.original_price.toFixed(2)}</span>` : ''}
       </td>
       <td>
         <span class="stock-badge ${getStockClass(product.stock_quantity)}">${product.stock_quantity}</span>
@@ -445,7 +456,7 @@ function renderRecentProducts(products) {
         ${product.featured_product ? '<span class="featured-badge">Featured</span>' : '-'}
       </td>
     </tr>
-  `).join('');
+  `}).join('');
 }
 
 // Products
@@ -500,7 +511,14 @@ function renderProductsTable(products) {
     return;
   }
   
-  tbody.innerHTML = products.map(product => `
+  tbody.innerHTML = products.map(product => {
+    // Calculate display price: use sales_price if it's less than original_price
+    const displayPrice = (product.sales_price && product.sales_price < product.original_price) 
+      ? product.sales_price 
+      : product.original_price;
+    const showOriginal = product.sales_price && product.sales_price < product.original_price;
+    
+    return `
     <tr>
       <td>
         <div class="product-info">
@@ -513,8 +531,8 @@ function renderProductsTable(products) {
       </td>
       <td>${product.category}</td>
       <td>
-        <span class="price">GH₵${product.sales_price.toFixed(2)}</span>
-        ${product.original_price > product.sales_price ? `<br><span class="original-price">GH₵${product.original_price.toFixed(2)}</span>` : ''}
+        <span class="price">GH₵${displayPrice.toFixed(2)}</span>
+        ${showOriginal ? `<br><span class="original-price">GH₵${product.original_price.toFixed(2)}</span>` : ''}
       </td>
       <td>
         <span class="stock-badge ${getStockClass(product.stock_quantity)}">${product.stock_quantity}</span>
@@ -533,7 +551,7 @@ function renderProductsTable(products) {
         </div>
       </td>
     </tr>
-  `).join('');
+  `}).join('');
 
   // Add event listeners to buttons
   tbody.querySelectorAll('.edit-btn').forEach(btn => {
@@ -724,7 +742,10 @@ async function handleProductSubmit(e) {
   formData.append('brand', brand);
   formData.append('short_description', shortDescription);
   formData.append('original_price', originalPrice);
-  formData.append('sales_price', salesPrice !== null ? salesPrice : originalPrice);
+  // Only append sales_price if explicitly provided
+  if (salesPrice !== null) {
+    formData.append('sales_price', salesPrice);
+  }
   formData.append('category', category);
   formData.append('subcategory', document.getElementById('subcategory').value);
   formData.append('sizes', document.getElementById('sizes').value);

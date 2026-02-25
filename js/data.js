@@ -83,7 +83,8 @@ function mapBackendProduct(product) {
         id: product._id,
         name: product.product_name,
         category: product.category,
-        price: product.sales_price || product.original_price,
+        // Use sales_price if available and less than original_price, otherwise use original_price
+        price: (product.sales_price && product.sales_price < product.original_price) ? product.sales_price : product.original_price,
         originalPrice: product.original_price,
         description: product.short_description,
         image: product.cover_image,

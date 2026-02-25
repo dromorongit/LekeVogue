@@ -75,7 +75,7 @@ router.post('/', protect, uploadCoverImage, async (req, res) => {
       brand: brand || '',
       short_description,
       original_price: parseFloat(original_price) || 0,
-      sales_price: parseFloat(sales_price) || parseFloat(original_price) || 0,
+      sales_price: sales_price ? parseFloat(sales_price) : null,
       category,
       subcategory: subcategory || '',
       sizes: sizesArray,
@@ -266,7 +266,8 @@ router.put('/:id', protect, uploadCoverImage, async (req, res) => {
 
     // Validation: Sales price cannot exceed original price
     const newOriginalPrice = parseFloat(original_price) || product.original_price;
-    const newSalesPrice = sales_price ? parseFloat(sales_price) : product.sales_price;
+    // Only update sales_price if explicitly provided, otherwise keep existing value
+    const newSalesPrice = sales_price ? parseFloat(sales_price) : (product.sales_price || null);
     
     if (newSalesPrice && newOriginalPrice && newSalesPrice > newOriginalPrice) {
       return res.status(400).json({
