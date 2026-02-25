@@ -324,10 +324,10 @@ function renderProductsTable(products) {
       <td>
         <div class="actions">
           <button class="edit-btn" onclick="editProduct('${product._id}')" title="Edit">
-            <i class="fas fa-edit"></i>
+            Edit
           </button>
           <button class="delete-btn" onclick="deleteProduct('${product._id}')" title="Delete">
-            <i class="fas fa-trash"></i>
+            Delete
           </button>
         </div>
       </td>
