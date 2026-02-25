@@ -96,7 +96,8 @@ async function handleEditProductSubmit(e) {
   const brand = document.getElementById('editBrand').value;
   const shortDescription = document.getElementById('editShortDescription').value;
   const originalPrice = parseFloat(document.getElementById('editOriginalPrice').value);
-  const salesPrice = document.getElementById('editSalesPrice').value ? parseFloat(document.getElementById('editSalesPrice').value) : null;
+  const salesPriceInput = document.getElementById('editSalesPrice').value;
+  const salesPrice = salesPriceInput && salesPriceInput.trim() !== '' ? parseFloat(salesPriceInput) : null;
   const category = document.getElementById('editCategory').value;
   const stockQuantity = parseInt(document.getElementById('editStockQuantity').value);
   
@@ -696,7 +697,8 @@ async function handleProductSubmit(e) {
   const brand = document.getElementById('brand').value;
   const shortDescription = document.getElementById('shortDescription').value;
   const originalPrice = parseFloat(document.getElementById('originalPrice').value);
-  const salesPrice = document.getElementById('salesPrice').value ? parseFloat(document.getElementById('salesPrice').value) : null;
+  const salesPriceInput = document.getElementById('salesPrice').value;
+  const salesPrice = salesPriceInput && salesPriceInput.trim() !== '' ? parseFloat(salesPriceInput) : null;
   const category = document.getElementById('category').value;
   const stockQuantity = parseInt(document.getElementById('stockQuantity').value);
   

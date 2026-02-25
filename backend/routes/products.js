@@ -266,7 +266,7 @@ router.put('/:id', protect, uploadCoverImage, async (req, res) => {
 
     // Validation: Sales price cannot exceed original price
     const newOriginalPrice = parseFloat(original_price) || product.original_price;
-    const newSalesPrice = salesPrice ? parseFloat(salesPrice) : product.sales_price;
+    const newSalesPrice = sales_price ? parseFloat(sales_price) : product.sales_price;
     
     if (newSalesPrice && newOriginalPrice && newSalesPrice > newOriginalPrice) {
       return res.status(400).json({
