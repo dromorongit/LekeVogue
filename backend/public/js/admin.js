@@ -770,12 +770,7 @@ async function handleProductSubmit(e) {
   }
 }
 
-// Legacy function - now uses modal
-async function editProduct(id) {
-  // This is now handled by the modal version above
-  return;
-}
-
+// Delete Product
 async function deleteProduct(id) {
   if (!confirm('Are you sure you want to delete this product?')) {
     return;
