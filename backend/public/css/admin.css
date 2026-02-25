@@ -446,11 +446,15 @@ tbody tr:hover {
 }
 
 .actions button {
-  padding: 8px;
+  padding: 8px 10px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
 }
 
 .actions .edit-btn {
@@ -458,13 +462,40 @@ tbody tr:hover {
   color: white;
 }
 
+.actions .edit-btn i {
+  color: white !important;
+}
+
 .actions .delete-btn {
   background: var(--danger);
   color: white;
 }
 
+.actions .delete-btn i {
+  color: white !important;
+}
+
 .actions button:hover {
   transform: scale(1.1);
+}
+
+/* Mobile action buttons */
+@media (max-width: 768px) {
+  .actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .actions button {
+    padding: 8px 10px;
+    min-width: 32px;
+    height: 32px;
+  }
+
+  .actions button i {
+    font-size: 14px;
+    color: white !important;
+  }
 }
 
 /* Search and Filter */
@@ -849,8 +880,11 @@ tbody tr:hover {
     transform: scale(1.05);
   }
 
-  .hamburger-btn i {
+  .hamburger-btn i,
+  .hamburger-btn .fas,
+  .hamburger-btn .fa-bars {
     color: #ffffff !important;
+    line-height: 1 !important;
   }
 
   /* Sidebar - Hidden by default on mobile, shown when toggled */
