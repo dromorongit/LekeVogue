@@ -446,53 +446,58 @@ tbody tr:hover {
 }
 
 .actions button {
-  padding: 8px 10px;
-  border: none;
+  padding: 8px 12px;
+  border: none !important;
   border-radius: 6px;
-  cursor: pointer;
+  cursor: pointer !important;
   transition: all 0.3s ease;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
   min-width: 36px;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 10;
 }
 
 .actions .edit-btn {
-  background: var(--primary-purple) !important;
+  background: #6c5ce7 !important;
   color: white !important;
-}
-
-.actions .edit-btn i::before {
-  content: "\f040" !important;
-  font-family: "Font Awesome 6 Free" !important;
-  font-weight: 900 !important;
-  color: white !important;
-}
-
-.actions .edit-btn .fas,
-.actions .edit-btn .fa-edit {
-  color: white !important;
-  font-weight: 900;
 }
 
 .actions .delete-btn {
-  background: var(--danger) !important;
+  background: #d63031 !important;
   color: white !important;
 }
 
-.actions .delete-btn .fas,
-.actions .delete-btn .fa-trash {
+.actions button i {
   color: white !important;
-  font-weight: 900;
+  font-size: 14px;
 }
 
 .actions button:hover {
   transform: scale(1.1);
 }
 
-/* Force icon visibility in action buttons */
-.actions button i.fas:before {
-  color: white !important;
+/* Force Font Awesome icons */
+.actions button .fas {
+  display: inline-block !important;
+  font-family: 'Font Awesome 6 Free' !important;
+  font-weight: 900 !important;
+  speak: never !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+  text-transform: none !important;
+  line-height: 1 !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+.actions .edit-btn .fas::before {
+  content: "\f044" !important; /* Pencil icon */
+}
+
+.actions .delete-btn .fas::before {
+  content: "\f1f8" !important; /* Trash icon */
 }
 
 /* Mobile action buttons */
@@ -506,14 +511,11 @@ tbody tr:hover {
     padding: 8px 10px;
     min-width: 32px;
     height: 32px;
+    pointer-events: auto !important;
   }
 
   .actions button i {
     font-size: 14px;
-    color: white !important;
-  }
-
-  .actions button i::before {
     color: white !important;
   }
 }
