@@ -781,6 +781,12 @@ tbody tr:hover {
 }
 
 @media (max-width: 768px) {
+  /* Prevent horizontal scrolling */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
   /* Mobile Header & Hamburger Menu */
   .mobile-header {
     display: flex;
@@ -793,7 +799,7 @@ tbody tr:hover {
   .mobile-header h1 {
     font-size: 20px;
     font-weight: 700;
-    color: var(--text-light);
+    color: #ffffff;
   }
 
   .mobile-header span {
@@ -806,18 +812,23 @@ tbody tr:hover {
     justify-content: center;
     width: 44px;
     height: 44px;
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
+    background: #6c5ce7;
+    border: none;
     border-radius: 8px;
-    color: var(--text-light);
-    font-size: 20px;
+    color: #ffffff !important;
+    font-size: 22px;
     cursor: pointer;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
   }
 
   .hamburger-btn:hover {
-    background: var(--primary-purple);
-    border-color: var(--primary-purple);
+    background: #5849c4;
+    transform: scale(1.05);
+  }
+
+  .hamburger-btn i {
+    color: #ffffff !important;
   }
 
   /* Sidebar - Hidden by default on mobile, shown when toggled */
@@ -830,13 +841,71 @@ tbody tr:hover {
     height: 100vh;
     z-index: 1000;
     padding-top: 60px;
+    padding: 24px;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    background: #16213e;
+    border-right: none;
   }
 
   .sidebar.active {
     display: flex;
     transform: translateX(0);
+  }
+
+  .sidebar-logo h2 {
+    color: #ffffff !important;
+    font-size: 22px;
+    display: block !important;
+  }
+
+  .sidebar-logo span {
+    color: var(--accent-orange) !important;
+  }
+
+  .sidebar-nav .nav-item {
+    padding: 16px 20px;
+    color: #ffffff !important;
+    font-size: 16px;
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .sidebar-nav .nav-item i {
+    color: #ffffff !important;
+    font-size: 18px;
+    width: 24px;
+  }
+
+  .sidebar-nav .nav-item span {
+    color: #ffffff !important;
+    display: inline !important;
+  }
+
+  .sidebar-footer .nav-item {
+    padding: 16px 20px;
+    color: #ffffff !important;
+    font-size: 16px;
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .sidebar-footer .nav-item i {
+    color: #ffffff !important;
+    font-size: 18px;
+    width: 24px;
+  }
+
+  .sidebar-footer .nav-item span {
+    color: #ffffff !important;
+    display: inline !important;
+  }
+
+  .sidebar-footer {
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   /* Sidebar Overlay */
@@ -847,7 +916,7 @@ tbody tr:hover {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
     z-index: 999;
   }
 
@@ -858,6 +927,9 @@ tbody tr:hover {
   .main-content {
     margin-left: 0;
     padding: 16px;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   .page-header {
@@ -868,6 +940,7 @@ tbody tr:hover {
 
   .page-header h1 {
     font-size: 22px;
+    color: #ffffff;
   }
 
   .search-filter {
@@ -880,10 +953,13 @@ tbody tr:hover {
 
   .table-container {
     font-size: 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   th, td {
     padding: 12px 8px;
+    white-space: nowrap;
   }
 
   .product-info {
@@ -915,6 +991,26 @@ tbody tr:hover {
   .pagination {
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  /* Ensure all cards fit within viewport */
+  .card {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  /* Table scroll handling */
+  .table-container::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .table-container::-webkit-scrollbar-track {
+    background: #1f2937;
+  }
+
+  .table-container::-webkit-scrollbar-thumb {
+    background: #6c5ce7;
+    border-radius: 2px;
   }
 }
 
