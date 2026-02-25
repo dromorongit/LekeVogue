@@ -458,25 +458,41 @@ tbody tr:hover {
 }
 
 .actions .edit-btn {
-  background: var(--primary-purple);
-  color: white;
+  background: var(--primary-purple) !important;
+  color: white !important;
 }
 
-.actions .edit-btn i {
+.actions .edit-btn i::before {
+  content: "\f040" !important;
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900 !important;
   color: white !important;
+}
+
+.actions .edit-btn .fas,
+.actions .edit-btn .fa-edit {
+  color: white !important;
+  font-weight: 900;
 }
 
 .actions .delete-btn {
-  background: var(--danger);
-  color: white;
+  background: var(--danger) !important;
+  color: white !important;
 }
 
-.actions .delete-btn i {
+.actions .delete-btn .fas,
+.actions .delete-btn .fa-trash {
   color: white !important;
+  font-weight: 900;
 }
 
 .actions button:hover {
   transform: scale(1.1);
+}
+
+/* Force icon visibility in action buttons */
+.actions button i.fas:before {
+  color: white !important;
 }
 
 /* Mobile action buttons */
@@ -494,6 +510,10 @@ tbody tr:hover {
 
   .actions button i {
     font-size: 14px;
+    color: white !important;
+  }
+
+  .actions button i::before {
     color: white !important;
   }
 }
@@ -840,7 +860,7 @@ tbody tr:hover {
 
   /* Mobile Header & Hamburger Menu */
   .mobile-header {
-    display: flex;
+    display: flex !important;
     align-items: center;
     gap: 16px;
     margin-bottom: 24px;
@@ -860,31 +880,37 @@ tbody tr:hover {
   }
 
   .hamburger-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     width: 44px;
     height: 44px;
-    background: #6c5ce7;
-    border: none;
+    background: #6c5ce7 !important;
+    border: none !important;
     border-radius: 8px;
-    color: #ffffff !important;
-    font-size: 22px;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+    flex-shrink: 0;
   }
 
   .hamburger-btn:hover {
-    background: #5849c4;
+    background: #5849c4 !important;
     transform: scale(1.05);
+  }
+
+  .hamburger-btn::before {
+    content: "\2630" !important;
+    font-size: 24px !important;
+    color: #ffffff !important;
+    font-weight: bold;
+    line-height: 1;
   }
 
   .hamburger-btn i,
   .hamburger-btn .fas,
   .hamburger-btn .fa-bars {
-    color: #ffffff !important;
-    line-height: 1 !important;
+    display: none !important;
   }
 
   /* Sidebar - Hidden by default on mobile, shown when toggled */
