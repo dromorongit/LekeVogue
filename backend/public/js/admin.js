@@ -121,7 +121,6 @@ async function handleEditProductSubmit(e) {
     formData.append('sales_price', salesPrice);
   }
   formData.append('category', category);
-  formData.append('subcategory', document.getElementById('editSubcategory').value);
   formData.append('sizes', document.getElementById('editSizes').value);
   formData.append('colors', document.getElementById('editColors').value);
   formData.append('dimensions_in_inches', document.getElementById('editDimensions').value);
@@ -187,7 +186,6 @@ async function editProduct(id) {
       // Only set sales_price if it has a value (not null)
       document.getElementById('editSalesPrice').value = product.sales_price || '';
       document.getElementById('editCategory').value = product.category;
-      document.getElementById('editSubcategory').value = product.subcategory || '';
       document.getElementById('editSizes').value = product.sizes ? product.sizes.join(', ') : '';
       document.getElementById('editColors').value = product.colors ? product.colors.join(', ') : '';
       document.getElementById('editDimensions').value = product.dimensions_in_inches || '';
@@ -747,7 +745,6 @@ async function handleProductSubmit(e) {
     formData.append('sales_price', salesPrice);
   }
   formData.append('category', category);
-  formData.append('subcategory', document.getElementById('subcategory').value);
   formData.append('sizes', document.getElementById('sizes').value);
   formData.append('colors', document.getElementById('colors').value);
   formData.append('dimensions_in_inches', document.getElementById('dimensions').value);

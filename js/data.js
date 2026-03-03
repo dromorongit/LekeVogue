@@ -10,17 +10,15 @@ let isLoading = false;
 
 // Default categories (fallback if API fails)
 const defaultCategories = [
-    { name: "Shoes", icon: "👠", subcategories: ["Heels", "Slipper Heels", "Flat Slippers", "Flat Sandals", "Block Sandals", "Block Slippers", "Flat Shoes", "Unisex Slippers", "Sneakers", "Men's Executive Shoes", "Men's Slippers", "Men's Sandals", "Kids Shoes (Girls)", "Kids Shoes (Boys)", "Kids Shoes (Unisex)"] },
-    { name: "Bags", icon: "👜" },
-    { name: "T-Shirts", icon: "👕" },
-    { name: "Dresses", icon: "👗" },
-    { name: "Jeans", icon: "👖" },
-    { name: "Underwear", icon: "🩱" },
-    { name: "Wigs", icon: "💇" },
-    { name: "Hair Bundles", icon: "💆" },
-    { name: "Hair Extensions", icon: "✨" },
-    { name: "Hair Products & Tools", icon: "💈" },
-    { name: "Belts", icon: "👔" }
+    { name: "Heels", icon: "👠" },
+    { name: "Flat Sandals", icon: "👡" },
+    { name: "Slippers & Shoes", icon: "🥿" },
+    { name: "Sneakers & Men's Shoes", icon: "👟" },
+    { name: "Bags/Clutch", icon: "👜" },
+    { name: "Jeans/T-Shirt", icon: "👕" },
+    { name: "Combo", icon: "📦" },
+    { name: "Hair/Wigs", icon: "💇" },
+    { name: "Others", icon: "📦" }
 ];
 
 // Default products (fallback if API fails)
@@ -91,7 +89,6 @@ function mapBackendProduct(product) {
         images: product.additional_images || [product.cover_image],
         featured: product.featured_product || false,
         brand: product.brand,
-        subcategory: product.subcategory,
         sizes: product.sizes || [],
         colors: product.colors || [],
         dimensions: product.dimensions_in_inches,
@@ -227,17 +224,15 @@ const API = {
             
             // Map to expected format with icons
             const categoryMap = {
-                "Shoes": { name: "Shoes", icon: "👠", subcategories: ["Heels", "Slipper Heels", "Flat Slippers", "Flat Sandals", "Block Sandals", "Block Slippers", "Flat Shoes", "Unisex Slippers", "Sneakers", "Men's Executive Shoes", "Men's Slippers", "Men's Sandals", "Kids Shoes (Girls)", "Kids Shoes (Boys)", "Kids Shoes (Unisex)"] },
-                "Bags": { name: "Bags", icon: "👜" },
-                "T-Shirts": { name: "T-Shirts", icon: "👕" },
-                "Dresses": { name: "Dresses", icon: "👗" },
-                "Jeans": { name: "Jeans", icon: "👖" },
-                "Underwear": { name: "Underwear", icon: "🩱" },
-                "Wigs": { name: "Wigs", icon: "💇" },
-                "Hair Bundles": { name: "Hair Bundles", icon: "💆" },
-                "Hair Extensions": { name: "Hair Extensions", icon: "✨" },
-                "Hair Products & Tools": { name: "Hair Products & Tools", icon: "💈" },
-                "Belts": { name: "Belts", icon: "👔" }
+                "Heels": { name: "Heels", icon: "👠" },
+                "Flat Sandals": { name: "Flat Sandals", icon: "👡" },
+                "Slippers & Shoes": { name: "Slippers & Shoes", icon: "🥿" },
+                "Sneakers & Men's Shoes": { name: "Sneakers & Men's Shoes", icon: "👟" },
+                "Bags/Clutch": { name: "Bags/Clutch", icon: "👜" },
+                "Jeans/T-Shirt": { name: "Jeans/T-Shirt", icon: "👕" },
+                "Combo": { name: "Combo", icon: "📦" },
+                "Hair/Wigs": { name: "Hair/Wigs", icon: "💇" },
+                "Others": { name: "Others", icon: "📦" }
             };
 
             categoriesCache = categoryNames.map(name => categoryMap[name] || { name, icon: "📦" });

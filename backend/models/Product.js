@@ -34,39 +34,19 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Category is required'],
     enum: [
-      'Shoes',
-      'Bags',
-      'T-Shirts',
-      'Dresses',
-      'Jeans',
-      'Underwear',
-      'Wigs',
-      'Hair Bundles',
-      'Hair Extensions',
-      'Hair Products & Tools',
-      'Belts'
+      'Heels',
+      'Flat Sandals',
+      'Slippers & Shoes',
+      'Sneakers & Men's Shoes',
+      'Bags/Clutch',
+      'Jeans/T-Shirt',
+      'Combo',
+      'Hair/Wigs',
+      'Others'
     ]
   },
   subcategory: {
     type: String,
-    enum: [
-      'Heels',
-      'Slipper Heels',
-      'Flat Slippers',
-      'Flat Sandals',
-      'Block Sandals',
-      'Block Slippers',
-      'Flat Shoes',
-      'Unisex Slippers',
-      'Sneakers',
-      "Men's Executive Shoes",
-      "Men's Slippers",
-      "Men's Sandals",
-      'Kids Shoes (Girls)',
-      'Kids Shoes (Boys)',
-      'Kids Shoes (Unisex)',
-      ''
-    ],
     default: ''
   },
   sizes: [{
