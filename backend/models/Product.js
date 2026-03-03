@@ -37,7 +37,7 @@ const productSchema = new mongoose.Schema({
       'Heels',
       'Flat Sandals',
       'Slippers & Shoes',
-      'Sneakers & Men's Shoes',
+      'Sneakers and Mens Shoes',
       'Bags/Clutch',
       'Jeans/T-Shirt',
       'Combo',
