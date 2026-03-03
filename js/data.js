@@ -219,23 +219,9 @@ const API = {
         }
 
         try {
-            const products = await this.getProducts();
-            const categoryNames = [...new Set(products.map(p => p.category))];
-            
-            // Map to expected format with icons
-            const categoryMap = {
-                "Heels": { name: "Heels", icon: "👠" },
-                "Flat Sandals": { name: "Flat Sandals", icon: "👡" },
-                "Slippers & Shoes": { name: "Slippers & Shoes", icon: "🥿" },
-                "Sneakers and Mens Shoes": { name: "Sneakers and Mens Shoes", icon: "👟" },
-                "Bags/Clutch": { name: "Bags/Clutch", icon: "👜" },
-                "Jeans/T-Shirt": { name: "Jeans/T-Shirt", icon: "👕" },
-                "Combo": { name: "Combo", icon: "📦" },
-                "Hair/Wigs": { name: "Hair/Wigs", icon: "💇" },
-                "Others": { name: "Others", icon: "📦" }
-            };
-
-            categoriesCache = categoryNames.map(name => categoryMap[name] || { name, icon: "📦" });
+            // Always return the defined categories regardless of what's in the database
+            // This ensures the frontend shows the correct category structure
+            categoriesCache = defaultCategories;
             return categoriesCache;
         } catch (error) {
             console.error('Error getting categories:', error);
