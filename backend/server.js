@@ -68,6 +68,9 @@ app.get('/api/health', (req, res) => {
 // Dashboard static files (served from backend for simplicity)
 app.use('/admin', express.static(__dirname + '/public'));
 
+// Serve assets folder for images
+app.use('/assets', express.static(__dirname + '/assets'));
+
 // Serve admin dashboard
 app.get('/admin/*', (req, res) => {
   res.sendFile(__dirname + '/public/admin.html');
