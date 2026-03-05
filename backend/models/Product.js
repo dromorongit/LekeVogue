@@ -57,6 +57,12 @@ const productSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  // Color-specific sizes: { "White": ["30", "31"], "Black": ["45", "47"] }
+  color_sizes: {
+    type: Map,
+    of: [String],
+    default: {}
+  },
   dimensions_in_inches: {
     type: String,
     default: ''

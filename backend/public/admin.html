@@ -240,6 +240,16 @@
                   <input type="text" id="colors" placeholder="e.g., Red, Blue, Black (comma separated)">
                   <p class="form-hint">Separate multiple colors with commas</p>
                 </div>
+                <div class="form-group full-width" id="colorSizeSection">
+                  <label>Color-Size Matrix</label>
+                  <p class="form-hint">Specify available sizes for each color (leave empty to use general sizes)</p>
+                  <div id="colorSizeMatrix">
+                    <!-- Color-size rows will be added dynamically -->
+                  </div>
+                  <button type="button" class="btn btn-secondary" onclick="addColorSizeRow()" style="margin-top: 10px;">
+                    <i class="fas fa-plus"></i> Add Color-Size
+                  </button>
+                </div>
                 <div class="form-group">
                   <label>Dimensions (in inches)</label>
                   <input type="text" id="dimensions" placeholder="e.g., 10 x 5 x 2 inches">
@@ -350,6 +360,16 @@
             <div class="form-group">
               <label>Colors</label>
               <input type="text" id="editColors" placeholder="e.g., Red, Blue, Black (comma separated)">
+            </div>
+            <div class="form-group full-width" id="editColorSizeSection">
+              <label>Color-Size Matrix</label>
+              <p class="form-hint">Specify available sizes for each color (leave empty to use general sizes)</p>
+              <div id="editColorSizeMatrix">
+                <!-- Color-size rows will be added dynamically -->
+              </div>
+              <button type="button" class="btn btn-secondary" onclick="addEditColorSizeRow()" style="margin-top: 10px;">
+                <i class="fas fa-plus"></i> Add Color-Size
+              </button>
             </div>
             <div class="form-group">
               <label>Dimensions (in inches)</label>

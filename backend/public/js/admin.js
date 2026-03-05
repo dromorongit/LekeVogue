@@ -123,6 +123,11 @@ async function handleEditProductSubmit(e) {
   formData.append('category', category);
   formData.append('sizes', document.getElementById('editSizes').value);
   formData.append('colors', document.getElementById('editColors').value);
+  
+  // Get color-size data
+  const editColorSizes = getColorSizeData('editColorSizeMatrix', 'edit-color-size-color', 'edit-color-size-sizes');
+  formData.append('color_sizes', JSON.stringify(editColorSizes));
+  
   formData.append('dimensions_in_inches', document.getElementById('editDimensions').value);
   formData.append('stock_quantity', stockQuantity || 0);
   formData.append('featured_product', document.getElementById('editFeaturedProduct').checked);
@@ -188,6 +193,16 @@ async function editProduct(id) {
       document.getElementById('editCategory').value = product.category;
       document.getElementById('editSizes').value = product.sizes ? product.sizes.join(', ') : '';
       document.getElementById('editColors').value = product.colors ? product.colors.join(', ') : '';
+      
+      // Populate color-size matrix if exists
+      const editColorSizeContainer = document.getElementById('editColorSizeMatrix');
+      editColorSizeContainer.innerHTML = '';
+      if (product.color_sizes && Object.keys(product.color_sizes).length > 0) {
+        for (const [color, sizes] of Object.entries(product.color_sizes)) {
+          addEditColorSizeRow(color, sizes.join(', '));
+        }
+      }
+      
       document.getElementById('editDimensions').value = product.dimensions_in_inches || '';
       document.getElementById('editStockQuantity').value = product.stock_quantity;
       document.getElementById('editFeaturedProduct').checked = product.featured_product;
@@ -747,6 +762,11 @@ async function handleProductSubmit(e) {
   formData.append('category', category);
   formData.append('sizes', document.getElementById('sizes').value);
   formData.append('colors', document.getElementById('colors').value);
+  
+  // Get color-size data
+  const colorSizes = getColorSizeData('colorSizeMatrix', 'color-size-color', 'color-size-sizes');
+  formData.append('color_sizes', JSON.stringify(colorSizes));
+  
   formData.append('dimensions_in_inches', document.getElementById('dimensions').value);
   formData.append('stock_quantity', stockQuantity || 0);
   formData.append('featured_product', document.getElementById('featuredProduct').checked);
@@ -858,4 +878,57 @@ function debounce(func, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
+}
+
+// Color-Size Matrix Functions
+function addColorSizeRow(color = '', sizes = '') {
+  const container = document.getElementById('colorSizeMatrix');
+  const row = document.createElement('div');
+  row.className = 'color-size-row';
+  row.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: center;';
+  row.innerHTML = `
+    <input type="text" placeholder="Color (e.g., White)" value="${color}" class="color-size-color" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+    <input type="text" placeholder="Sizes (e.g., 30, 31)" value="${sizes}" class="color-size-sizes" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+    <button type="button" onclick="this.parentElement.remove()" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+  container.appendChild(row);
+}
+
+function addEditColorSizeRow(color = '', sizes = '') {
+  const container = document.getElementById('editColorSizeMatrix');
+  const row = document.createElement('div');
+  row.className = 'edit-color-size-row';
+  row.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: center;';
+  row.innerHTML = `
+    <input type="text" placeholder="Color (e.g., White)" value="${color}" class="edit-color-size-color" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+    <input type="text" placeholder="Sizes (e.g., 30, 31)" value="${sizes}" class="edit-color-size-sizes" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+    <button type="button" onclick="this.parentElement.remove()" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+  container.appendChild(row);
+}
+
+// Helper to collect color-size data from form
+function getColorSizeData(containerId, colorClass, sizesClass) {
+  const container = document.getElementById(containerId);
+  const rows = container.querySelectorAll('.color-size-row, .edit-color-size-row');
+  const colorSizes = {};
+  
+  rows.forEach(row => {
+    const colorInput = row.querySelector(`.${colorClass}`);
+    const sizesInput = row.querySelector(`.${sizesClass}`);
+    
+    if (colorInput && sizesInput && colorInput.value.trim()) {
+      const color = colorInput.value.trim();
+      const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
+      if (sizes.length > 0) {
+        colorSizes[color] = sizes;
+      }
+    }
+  });
+  
+  return colorSizes;
 }

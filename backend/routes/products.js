@@ -22,6 +22,7 @@ router.post('/', protect, uploadCoverImage, async (req, res) => {
       category,
       sizes,
       colors,
+      color_sizes,
       dimensions_in_inches,
       stock_quantity,
       featured_product
@@ -68,6 +69,16 @@ router.post('/', protect, uploadCoverImage, async (req, res) => {
     // Parse sizes and colors from comma-separated strings to arrays
     const sizesArray = sizes ? sizes.split(',').map(s => s.trim()).filter(s => s) : [];
     const colorsArray = colors ? colors.split(',').map(c => c.trim()).filter(c => c) : [];
+    
+    // Parse color_sizes from JSON string
+    let colorSizesObj = {};
+    try {
+      if (color_sizes) {
+        colorSizesObj = typeof color_sizes === 'string' ? JSON.parse(color_sizes) : color_sizes;
+      }
+    } catch (e) {
+      console.error('Error parsing color_sizes:', e);
+    }
 
     const product = new Product({
       product_name,
@@ -78,6 +89,7 @@ router.post('/', protect, uploadCoverImage, async (req, res) => {
       category,
       sizes: sizesArray,
       colors: colorsArray,
+      color_sizes: colorSizesObj,
       dimensions_in_inches: dimensions_in_inches || '',
       stock_quantity: parseInt(stock_quantity) || 0,
       cover_image: coverImageUrl,
@@ -245,6 +257,7 @@ router.put('/:id', protect, uploadCoverImage, async (req, res) => {
       category,
       sizes,
       colors,
+      color_sizes,
       dimensions_in_inches,
       stock_quantity,
       featured_product,
@@ -307,6 +320,16 @@ router.put('/:id', protect, uploadCoverImage, async (req, res) => {
     const sizesArray = sizes ? sizes.split(',').map(s => s.trim()).filter(s => s) : product.sizes;
     const colorsArray = colors ? colors.split(',').map(c => c.trim()).filter(c => c) : product.colors;
 
+    // Parse color_sizes from JSON string
+    let colorSizesObj = product.color_sizes || {};
+    try {
+      if (color_sizes) {
+        colorSizesObj = typeof color_sizes === 'string' ? JSON.parse(color_sizes) : color_sizes;
+      }
+    } catch (e) {
+      console.error('Error parsing color_sizes:', e);
+    }
+
     // Update product fields
     product = await Product.findByIdAndUpdate(
       req.params.id,
@@ -319,6 +342,7 @@ router.put('/:id', protect, uploadCoverImage, async (req, res) => {
         category: category || product.category,
         sizes: sizesArray,
         colors: colorsArray,
+        color_sizes: colorSizesObj,
         dimensions_in_inches: dimensions_in_inches !== undefined ? dimensions_in_inches : product.dimensions_in_inches,
         stock_quantity: stock_quantity !== undefined ? parseInt(stock_quantity) : product.stock_quantity,
         cover_image: coverImageUrl,
