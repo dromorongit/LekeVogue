@@ -19,7 +19,7 @@
     --radius-sm: 8px;
     --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --container-width: 1200px;
-    --header-height: 70px;
+    --header-height: 140px;
 }
 
 /* Reset & Base Styles */
@@ -261,7 +261,7 @@ h4 { font-size: 1.25rem; }
 
 /* Hero Section */
 .hero {
-    padding: 140px 0 80px;
+    padding: 200px 0 80px;
     background: linear-gradient(135deg, var(--light) 0%, var(--primary) 100%);
     position: relative;
     overflow: hidden;
@@ -813,7 +813,7 @@ h4 { font-size: 1.25rem; }
 
 /* Page Banner */
 .page-banner {
-    padding: 120px 0 60px;
+    padding: 160px 0 60px;
     background: var(--light);
     text-align: center;
 }
@@ -828,7 +828,7 @@ h4 { font-size: 1.25rem; }
 
 /* Shop Page */
 .shop-container {
-    padding: 100px 0 60px;
+    padding: 160px 0 60px;
 }
 
 .shop-header {
@@ -866,7 +866,7 @@ h4 { font-size: 1.25rem; }
 
 /* Product Details Page */
 .product-details-container {
-    padding: 100px 0 60px;
+    padding: 160px 0 60px;
 }
 
 .product-details {
@@ -1151,7 +1151,7 @@ h4 { font-size: 1.25rem; }
 
 /* About Page */
 .about-container {
-    padding: 100px 0 60px;
+    padding: 160px 0 60px;
 }
 
 .about-content {
@@ -1202,7 +1202,7 @@ h4 { font-size: 1.25rem; }
 
 /* Contact Page */
 .contact-container {
-    padding: 100px 0 60px;
+    padding: 160px 0 60px;
 }
 
 .contact-content {
@@ -1260,7 +1260,7 @@ h4 { font-size: 1.25rem; }
 
 /* Cart Page */
 .cart-container {
-    padding: 100px 0 60px;
+    padding: 160px 0 60px;
 }
 
 .cart-empty {
@@ -1402,7 +1402,7 @@ h4 { font-size: 1.25rem; }
 
 /* Checkout Page */
 .checkout-container {
-    padding: 100px 0 60px;
+    padding: 160px 0 60px;
 }
 
 .checkout-content {
@@ -1538,7 +1538,7 @@ h4 { font-size: 1.25rem; }
 
 @media (max-width: 768px) {
     :root {
-        --header-height: 60px;
+        --header-height: 140px;
     }
     
     h1 { font-size: 2rem; }
