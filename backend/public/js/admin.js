@@ -289,6 +289,10 @@ function setupEventListeners() {
   
   // Image upload areas
   setupImageUpload();
+  
+  // Color-size matrix buttons
+  document.getElementById('addColorSizeBtn').addEventListener('click', () => addColorSizeRow());
+  document.getElementById('addEditColorSizeBtn').addEventListener('click', () => addEditColorSizeRow());
 }
 
 // Authentication
