@@ -196,13 +196,16 @@
         // Store customer data
         let customerData = {};
         
+        // API Base URL
+        const API_BASE_URL = 'https://lekevogue-production.up.railway.app/api';
+        
         document.addEventListener('DOMContentLoaded', function() {
             renderOrderSummary();
             UI.init();
         });
         
         function renderOrderSummary() {
-            const cartItems = Cart.getCartItems();
+            const cartItems = Cart.getCart();
             const orderItemsContainer = document.getElementById('orderItems');
             const emptyCart = document.getElementById('emptyCart');
             const checkoutContent = document.getElementById('checkoutContent');
@@ -218,33 +221,47 @@
             
             // Render order items
             let itemsHTML = '';
-            cartItems.forEach(item => {
-                // Build options string
-                let optionsText = '';
-                if (item.size) optionsText += `Size: ${item.size}`;
-                if (item.color) {
-                    if (optionsText) optionsText += ', ';
-                    optionsText += `Color: ${item.color}`;
-                }
-                
-                itemsHTML += `
-                    <div class="order-item">
-                        <div class="order-item-info">
-                            <h4>${item.name}</h4>
-                            ${optionsText ? `<span>${optionsText}</span>` : ''}
-                            <span>Qty: ${item.quantity}</span>
-                        </div>
-                        <div class="order-item-price">${formatPrice(item.total)}</div>
-                    </div>
-                `;
+            let subtotal = 0;
+            
+            // Get product details for each cart item
+            const productPromises = cartItems.map(async (item) => {
+                const product = await getProductById(item.id);
+                return { ...item, product };
             });
             
-            orderItemsContainer.innerHTML = itemsHTML;
-            
-            // Update totals
-            const subtotal = Cart.getCartTotal();
-            document.getElementById('orderSubtotal').textContent = formatPrice(subtotal);
-            document.getElementById('orderTotal').textContent = formatPrice(subtotal);
+            Promise.all(productPromises).then(items => {
+                items.forEach(item => {
+                    if (!item.product) return;
+                    
+                    const itemTotal = item.product.price * item.quantity;
+                    subtotal += itemTotal;
+                    
+                    // Build options string
+                    let optionsText = '';
+                    if (item.size) optionsText += `Size: ${item.size}`;
+                    if (item.color) {
+                        if (optionsText) optionsText += ', ';
+                        optionsText += `Color: ${item.color}`;
+                    }
+                    
+                    itemsHTML += `
+                        <div class="order-item">
+                            <div class="order-item-info">
+                                <h4>${item.product.name}</h4>
+                                ${optionsText ? `<span>${optionsText}</span>` : ''}
+                                <span>Qty: ${item.quantity}</span>
+                            </div>
+                            <div class="order-item-price">GHS ${itemTotal.toFixed(2)}</div>
+                        </div>
+                    `;
+                });
+                
+                orderItemsContainer.innerHTML = itemsHTML;
+                
+                // Update totals
+                document.getElementById('orderSubtotal').textContent = `GHS ${subtotal.toFixed(2)}`;
+                document.getElementById('orderTotal').textContent = `GHS ${subtotal.toFixed(2)}`;
+            });
         }
         
         function getCustomerData() {
@@ -310,54 +327,102 @@
             handler.openIframe();
         }
         
+        async function deductStock(cartItems) {
+            try {
+                const items = cartItems.map(item => ({
+                    productId: item.id,
+                    size: item.size || null,
+                    color: item.color || null,
+                    quantity: item.quantity || 1
+                }));
+                
+                const response = await fetch(`${API_BASE_URL}/products/deduct-stock`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ items })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('Stock deducted successfully');
+                } else {
+                    console.warn('Stock deduction warning:', data.message);
+                }
+            } catch (error) {
+                console.error('Error deducting stock:', error);
+            }
+        }
+        
         function sendToWhatsApp() {
             if (!validateForm()) return;
             
-            const cartItems = Cart.getCartItems();
+            const cartItems = Cart.getCart();
             if (cartItems.length === 0) {
                 Cart.showToast('Your cart is empty', 'error');
                 return;
             }
             
             customerData = getCustomerData();
-            const total = Cart.getCartTotal();
             
-            // Generate WhatsApp message
-            let message = `*New Order from Leke Vogue Website*\n\n`;
-            message += `*Customer Details*\n`;
-            message += `Name: ${customerData.fullName}\n`;
-            message += `Phone: ${customerData.phone}\n`;
-            if (customerData.email) message += `Email: ${customerData.email}\n`;
-            if (customerData.notes) message += `Notes: ${customerData.notes}\n`;
-            message += `\n*Ordered Items*\n`;
-            
-            cartItems.forEach(item => {
-                let itemDetails = `${item.name} x${item.quantity}`;
-                if (item.size) itemDetails += ` (Size: ${item.size})`;
-                if (item.color) itemDetails += ` (Color: ${item.color})`;
-                message += `- ${itemDetails} = GHS ${item.total.toFixed(2)}\n`;
+            // First deduct stock, then proceed with WhatsApp
+            deductStock(cartItems).then(() => {
+                // Generate WhatsApp message
+                let message = `*New Order from Leke Vogue Website*\n\n`;
+                message += `*Customer Details*\n`;
+                message += `Name: ${customerData.fullName}\n`;
+                message += `Phone: ${customerData.phone}\n`;
+                if (customerData.email) message += `Email: ${customerData.email}\n`;
+                if (customerData.notes) message += `Notes: ${customerData.notes}\n`;
+                message += `\n*Ordered Items*\n`;
+                
+                // Get product details for message
+                const productPromises = cartItems.map(async (item) => {
+                    const product = await getProductById(item.id);
+                    return { ...item, product };
+                });
+                
+                Promise.all(productPromises).then(items => {
+                    let total = 0;
+                    items.forEach(item => {
+                        if (!item.product) return;
+                        const itemTotal = item.product.price * item.quantity;
+                        total += itemTotal;
+                        
+                        let itemDetails = `${item.product.name} x${item.quantity}`;
+                        if (item.size) itemDetails += ` (Size: ${item.size})`;
+                        if (item.color) itemDetails += ` (Color: ${item.color})`;
+                        message += `- ${itemDetails} = GHS ${itemTotal.toFixed(2)}\n`;
+                    });
+                    
+                    message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;
+                    message += `Order placed via Leke Vogue Website`;
+                    
+                    // Open WhatsApp
+                    const encodedMessage = encodeURIComponent(message);
+                    window.open(`https://wa.me/233500098510?text=${encodedMessage}`, '_blank');
+                    
+                    // Clear cart
+                    Cart.clearCart();
+                    Cart.showToast('Order sent via WhatsApp!', 'success');
+                    
+                    // Redirect to home after delay
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                });
             });
-            
-            message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;
-            message += `Order placed via Leke Vogue Website`;
-            
-            // Open WhatsApp
-            const encodedMessage = encodeURIComponent(message);
-            window.open(`https://wa.me/233500098510?text=${encodedMessage}`, '_blank');
-            
-            // Clear cart
-            Cart.clearCart();
-            Cart.showToast('Order sent via WhatsApp!', 'success');
-            
-            // Redirect to home after delay
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
         }
         
-        function completeOrder() {
-            const cartItems = Cart.getCartItems();
-            const total = Cart.getCartTotal();
+        async function completeOrder() {
+            const cartItems = Cart.getCart();
+            
+            // First deduct stock, then proceed
+            await deductStock(cartItems);
+            
+            let total = 0;
             
             // Generate WhatsApp message for order confirmation
             let message = `*Payment Confirmed - New Order*\n\n`;
@@ -369,11 +434,23 @@
             if (customerData.notes) message += `Notes: ${customerData.notes}\n`;
             message += `\n*Ordered Items*\n`;
             
-            cartItems.forEach(item => {
-                let itemDetails = `${item.name} x${item.quantity}`;
+            // Get product details for message
+            const productPromises = cartItems.map(async (item) => {
+                const product = await getProductById(item.id);
+                return { ...item, product };
+            });
+            
+            const items = await Promise.all(productPromises);
+            
+            items.forEach(item => {
+                if (!item.product) return;
+                const itemTotal = item.product.price * item.quantity;
+                total += itemTotal;
+                
+                let itemDetails = `${item.product.name} x${item.quantity}`;
                 if (item.size) itemDetails += ` (Size: ${item.size})`;
                 if (item.color) itemDetails += ` (Color: ${item.color})`;
-                message += `- ${itemDetails} = GHS ${item.total.toFixed(2)}\n`;
+                message += `- ${itemDetails} = GHS ${itemTotal.toFixed(2)}\n`;
             });
             
             message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;

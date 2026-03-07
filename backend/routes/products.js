@@ -473,4 +473,80 @@ router.get('/featured/list', async (req, res) => {
   }
 });
 
+// @route   POST /api/products/deduct-stock
+// @desc    Deduct stock when order is placed
+// @access  Public
+router.post('/deduct-stock', async (req, res) => {
+  try {
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No items provided'
+      });
+    }
+
+    // Process each item in the order
+    for (const item of items) {
+      const { productId, size, color, quantity } = item;
+      
+      if (!productId || !quantity) {
+        continue; // Skip invalid items
+      }
+
+      const product = await Product.findById(productId);
+      
+      if (!product) {
+        console.warn(`Product not found: ${productId}`);
+        continue;
+      }
+
+      // Deduct from overall stock_quantity
+      const newStock = Math.max(0, (product.stock_quantity || 0) - quantity);
+      
+      // Deduct from color_sizes if color and size are specified
+      let updatedColorSizes = product.color_sizes ? { ...product.color_sizes } : {};
+      
+      if (color && size && updatedColorSizes[color]) {
+        // Find the size in the color's size array and remove it
+        const colorSizesArray = [...updatedColorSizes[color]];
+        let remainingQty = quantity;
+        
+        // Remove each occurrence of the size
+        for (let i = colorSizesArray.length - 1; i >= 0 && remainingQty > 0; i--) {
+          if (colorSizesArray[i] === String(size) || colorSizesArray[i] === size) {
+            colorSizesArray.splice(i, 1);
+            remainingQty--;
+          }
+        }
+        
+        updatedColorSizes[color] = colorSizesArray;
+        
+        // Remove color if no sizes left
+        if (colorSizesArray.length === 0) {
+          delete updatedColorSizes[color];
+        }
+      }
+
+      // Update the product
+      await Product.findByIdAndUpdate(productId, {
+        stock_quantity: newStock,
+        color_sizes: updatedColorSizes
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Stock deducted successfully'
+    });
+  } catch (error) {
+    console.error('Deduct stock error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deducting stock'
+    });
+  }
+});
+
 module.exports = router;
