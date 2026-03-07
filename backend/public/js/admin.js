@@ -203,6 +203,9 @@ async function editProduct(id) {
         }
       }
       
+      // Calculate stock from color-size matrix
+      setTimeout(() => updateStockFromColorSizeEdit(), 100);
+      
       document.getElementById('editDimensions').value = product.dimensions_in_inches || '';
       document.getElementById('editStockQuantity').value = product.stock_quantity;
       document.getElementById('editFeaturedProduct').checked = product.featured_product;
@@ -893,11 +896,20 @@ function addColorSizeRow(color = '', sizes = '') {
   row.innerHTML = `
     <input type="text" placeholder="Color (e.g., White)" value="${color}" class="color-size-color" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
     <input type="text" placeholder="Sizes (e.g., 30, 31)" value="${sizes}" class="color-size-sizes" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-    <button type="button" onclick="this.parentElement.remove()" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+    <button type="button" onclick="this.parentElement.remove(); updateStockFromColorSize();" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
       <i class="fas fa-times"></i>
     </button>
   `;
   container.appendChild(row);
+  
+  // Add event listener to the sizes input for auto-calculation
+  const sizesInput = row.querySelector('.color-size-sizes');
+  sizesInput.addEventListener('input', updateStockFromColorSize);
+  
+  // Initial calculation if sizes are provided
+  if (sizes) {
+    updateStockFromColorSize();
+  }
 }
 
 function addEditColorSizeRow(color = '', sizes = '') {
@@ -908,11 +920,20 @@ function addEditColorSizeRow(color = '', sizes = '') {
   row.innerHTML = `
     <input type="text" placeholder="Color (e.g., White)" value="${color}" class="edit-color-size-color" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
     <input type="text" placeholder="Sizes (e.g., 30, 31)" value="${sizes}" class="edit-color-size-sizes" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-    <button type="button" onclick="this.parentElement.remove()" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+    <button type="button" onclick="this.parentElement.remove(); updateStockFromColorSizeEdit();" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
       <i class="fas fa-times"></i>
     </button>
   `;
   container.appendChild(row);
+  
+  // Add event listener to the sizes input for auto-calculation
+  const sizesInput = row.querySelector('.edit-color-size-sizes');
+  sizesInput.addEventListener('input', updateStockFromColorSizeEdit);
+  
+  // Initial calculation if sizes are provided
+  if (sizes) {
+    updateStockFromColorSizeEdit();
+  }
 }
 
 // Helper to collect color-size data from form
@@ -935,4 +956,48 @@ function getColorSizeData(containerId, colorClass, sizesClass) {
   });
   
   return colorSizes;
+}
+
+// Calculate and update stock quantity from Color-Size Matrix (for Add Product form)
+function updateStockFromColorSize() {
+  const container = document.getElementById('colorSizeMatrix');
+  const rows = container.querySelectorAll('.color-size-row');
+  let totalStock = 0;
+  
+  rows.forEach(row => {
+    const sizesInput = row.querySelector('.color-size-sizes');
+    if (sizesInput && sizesInput.value.trim()) {
+      // Split by comma and count each size (including duplicates)
+      const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
+      totalStock += sizes.length;
+    }
+  });
+  
+  // Update the stock quantity input
+  const stockInput = document.getElementById('stockQuantity');
+  if (totalStock > 0) {
+    stockInput.value = totalStock;
+  }
+}
+
+// Calculate and update stock quantity from Color-Size Matrix (for Edit Product form)
+function updateStockFromColorSizeEdit() {
+  const container = document.getElementById('editColorSizeMatrix');
+  const rows = container.querySelectorAll('.edit-color-size-row');
+  let totalStock = 0;
+  
+  rows.forEach(row => {
+    const sizesInput = row.querySelector('.edit-color-size-sizes');
+    if (sizesInput && sizesInput.value.trim()) {
+      // Split by comma and count each size (including duplicates)
+      const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
+      totalStock += sizes.length;
+    }
+  });
+  
+  // Update the stock quantity input
+  const stockInput = document.getElementById('editStockQuantity');
+  if (totalStock > 0) {
+    stockInput.value = totalStock;
+  }
 }

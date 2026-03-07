@@ -77,6 +77,18 @@ const defaultProducts = [
 
 // Map backend product to frontend format
 function mapBackendProduct(product) {
+    // Convert Map to object for color_sizes if it exists
+    let colorSizes = {};
+    if (product.color_sizes) {
+        if (product.color_sizes instanceof Map) {
+            product.color_sizes.forEach((value, key) => {
+                colorSizes[key] = value;
+            });
+        } else if (typeof product.color_sizes === 'object') {
+            colorSizes = product.color_sizes;
+        }
+    }
+    
     return {
         id: product._id,
         name: product.product_name,
@@ -91,6 +103,7 @@ function mapBackendProduct(product) {
         brand: product.brand,
         sizes: product.sizes || [],
         colors: product.colors || [],
+        color_sizes: colorSizes,
         dimensions: product.dimensions_in_inches,
         stock: product.stock_quantity
     };

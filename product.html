@@ -165,6 +165,7 @@
                 // Build variants with quantity selectors if available
                 const hasSizes = product.sizes && product.sizes.length > 0;
                 const hasColors = product.colors && product.colors.length > 0;
+                const hasColorSizes = product.color_sizes && Object.keys(product.color_sizes).length > 0;
                 
                 // Initialize variant quantities
                 if (hasSizes) {
@@ -174,8 +175,53 @@
                     product.colors.forEach(color => variantQuantities[`color_${color}`] = 0);
                 }
                 
-                // Render sizes with quantity selectors if available
-                const sizesHtml = hasSizes ? `
+                // Render color-size matrix with quantities if available
+                let colorSizeMatrixHtml = '';
+                if (hasColorSizes) {
+                    // Initialize quantities for color-size variants
+                    for (const [color, sizes] of Object.entries(product.color_sizes)) {
+                        sizes.forEach(size => {
+                            const key = `colorsize_${color}_${size}`;
+                            variantQuantities[key] = 0;
+                        });
+                    }
+                    
+                    colorSizeMatrixHtml = `
+                        <div class="product-option-group">
+                            <label>Select Color & Sizes:</label>
+                            ${Object.entries(product.color_sizes).map(([color, sizes]) => {
+                                // Count occurrences of each size
+                                const sizeCounts = {};
+                                sizes.forEach(size => {
+                                    sizeCounts[size] = (sizeCounts[size] || 0) + 1;
+                                });
+                                
+                                return `
+                                    <div class="color-size-block">
+                                        <div class="color-header">
+                                            <span class="color-name">Color: ${color}</span>
+                                        </div>
+                                        <div class="variant-quantity-grid">
+                                            ${Object.entries(sizeCounts).map(([size, count]) => `
+                                                <div class="variant-item">
+                                                    <span class="variant-name">Size ${size} <span class="size-qty">(Qty ${count})</span></span>
+                                                    <div class="quantity-controls small">
+                                                        <button type="button" onclick="updateVariantQuantity('colorsize_${color}_${size}', -1)">-</button>
+                                                        <span id="qty_colorsize_${color}_${size}">0</span>
+                                                        <button type="button" onclick="updateVariantQuantity('colorsize_${color}_${size}', 1)">+</button>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+                
+                // Render sizes with quantity selectors if available (only if no color_size matrix)
+                const sizesHtml = !hasColorSizes && hasSizes ? `
                     <div class="product-option-group">
                         <label>Select Sizes & Quantities:</label>
                         <div class="variant-quantity-grid">
@@ -193,8 +239,8 @@
                     </div>
                 ` : '';
                 
-                // Render colors with quantity selectors if available
-                const colorsHtml = hasColors ? `
+                // Render colors with quantity selectors if available (only if no color_size matrix)
+                const colorsHtml = !hasColorSizes && hasColors ? `
                     <div class="product-option-group">
                         <label>Select Colors & Quantities:</label>
                         <div class="variant-quantity-grid">
@@ -267,6 +313,7 @@
                             ${dimensionsHtml}
                         </div>
                         
+                        ${colorSizeMatrixHtml}
                         ${sizesHtml}
                         ${colorsHtml}
                         
@@ -346,8 +393,16 @@
                 if (qty > 0) {
                     const parts = key.split('_');
                     const type = parts[0];
-                    const value = parts.slice(1).join('_');
-                    variants.push({ type, value, quantity: qty });
+                    
+                    if (type === 'colorsize') {
+                        // For colorsize type: colorsize_Color_Size -> color = Color, size = Size
+                        const color = parts[1];
+                        const size = parts[2];
+                        variants.push({ type, color, size, quantity: qty });
+                    } else {
+                        const value = parts.slice(1).join('_');
+                        variants.push({ type, value, quantity: qty });
+                    }
                 }
             }
             
@@ -358,7 +413,15 @@
             
             // Add each variant to cart
             variants.forEach(variant => {
-                Cart.addItem(productId, variant.quantity, variant.value, variant.type);
+                if (variant.type === 'colorsize') {
+                    Cart.addItem(productId, variant.quantity, variant.size, variant.color);
+                } else if (variant.type === 'size') {
+                    Cart.addItem(productId, variant.quantity, variant.value, null);
+                } else if (variant.type === 'color') {
+                    Cart.addItem(productId, variant.quantity, null, variant.value);
+                } else {
+                    Cart.addItem(productId, variant.quantity);
+                }
             });
             
             setTimeout(() => window.location.href = 'cart.html', 1000);

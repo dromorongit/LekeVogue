@@ -1081,6 +1081,12 @@ h4 { font-size: 1.25rem; }
     color: var(--dark);
 }
 
+.size-qty {
+    font-weight: 400;
+    color: var(--gray);
+    font-size: 0.85rem;
+}
+
 .variant-item .quantity-controls {
     margin-bottom: 0;
     background: var(--primary);
@@ -1099,6 +1105,36 @@ h4 { font-size: 1.25rem; }
 .variant-item .quantity-controls.small span {
     min-width: 30px;
     font-size: 0.95rem;
+}
+
+/* Color-Size Matrix Display */
+.color-size-block {
+    background: var(--light);
+    border-radius: var(--radius-sm);
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 2px solid var(--border);
+}
+
+.color-header {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.color-name {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 1.1rem;
+}
+
+.color-size-block .variant-quantity-grid {
+    gap: 10px;
+}
+
+.color-size-block .variant-item {
+    min-width: 140px;
+    padding: 10px 12px;
 }
 
 /* Selected Total */
