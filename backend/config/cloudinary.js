@@ -64,7 +64,8 @@ const uploadToCloudinary = (fileBuffer, folder) => {
 // Middleware for single cover image upload
 const uploadCoverImage = async (req, res, next) => {
   upload.single('cover_image')(req, res, async (err) => {
-    if (err) {
+    // Don't error on unexpected field - just continue without file
+    if (err && !err.message.includes('Unexpected field')) {
       console.error('Multer cover image error:', err.message);
       return res.status(400).json({
         success: false,
@@ -92,7 +93,8 @@ const uploadCoverImage = async (req, res, next) => {
 // Middleware for multiple additional images upload
 const uploadAdditionalImages = async (req, res, next) => {
   upload.array('additional_images', 5)(req, res, async (err) => {
-    if (err) {
+    // Don't error on unexpected field - just continue without files
+    if (err && !err.message.includes('Unexpected field')) {
       console.error('Multer additional images error:', err.message);
       return res.status(400).json({
         success: false,
