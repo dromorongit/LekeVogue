@@ -74,10 +74,14 @@ const uploadCoverImage = async (req, res, next) => {
     }
     
     try {
-      if (req.file) {
+      // Only upload if there's actually a file with content
+      if (req.file && req.file.buffer && req.file.buffer.length > 0) {
         const result = await uploadToCloudinary(req.file.buffer, 'lekevogue/products/covers');
         req.file.path = result.secure_url;
         req.file.cloudinaryResult = result;
+      } else {
+        // No file uploaded - will be handled by route
+        req.file = undefined;
       }
       next();
     } catch (error) {
@@ -103,16 +107,20 @@ const uploadAdditionalImages = async (req, res, next) => {
     }
     
     try {
+      // Only upload if there are actually files with content
       if (req.files && req.files.length > 0) {
-        const uploadPromises = req.files.map(file => 
-          uploadToCloudinary(file.buffer, 'lekevogue/products/additional')
-        );
-        const results = await Promise.all(uploadPromises);
-        req.files = req.files.map((file, index) => ({
-          ...file,
-          path: results[index].secure_url,
-          cloudinaryResult: results[index]
-        }));
+        const validFiles = req.files.filter(f => f.buffer && f.buffer.length > 0);
+        if (validFiles.length > 0) {
+          const uploadPromises = validFiles.map(file => 
+            uploadToCloudinary(file.buffer, 'lekevogue/products/additional')
+          );
+          const results = await Promise.all(uploadPromises);
+          req.files = validFiles.map((file, index) => ({
+            ...file,
+            path: results[index].secure_url,
+            cloudinaryResult: results[index]
+          }));
+        }
       }
       next();
     } catch (error) {
