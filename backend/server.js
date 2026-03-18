@@ -16,6 +16,9 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
+// Trust proxy for Railway (needed for rate limiting)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -34,6 +37,7 @@ app.use(helmet({
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
+  trustProxy: 1,
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
