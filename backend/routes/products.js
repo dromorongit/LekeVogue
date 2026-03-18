@@ -53,6 +53,7 @@ router.post('/', protect, uploadCoverImage, async (req, res) => {
     }
 
     // Check if cover image is uploaded
+    console.log('Products route - Checking for cover image, req.file:', req.file);
     if (!req.file) {
       return res.status(400).json({
         success: false,

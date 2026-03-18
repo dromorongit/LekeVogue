@@ -74,14 +74,20 @@ const uploadCoverImage = (req, res, next) => {
         });
       }
       
+      console.log('Cover image upload middleware - req.file:', req.file);
+      console.log('Cover image upload middleware - req.body:', req.body);
+      
       try {
         // Only upload if there's actually a file with content
         if (req.file && req.file.buffer && req.file.buffer.length > 0) {
+          console.log('Uploading cover image to Cloudinary...');
           const result = await uploadToCloudinary(req.file.buffer, 'lekevogue/products/covers');
           req.file.path = result.secure_url;
           req.file.cloudinaryResult = result;
+          console.log('Cover image uploaded successfully:', result.secure_url);
         } else {
           // No file uploaded - will be handled by route
+          console.log('No cover image file found in request');
           req.file = undefined;
         }
         next();

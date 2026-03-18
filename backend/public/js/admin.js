@@ -658,8 +658,10 @@ function setupImageUpload() {
   
   coverUpload.addEventListener('click', () => coverInput.click());
   coverInput.addEventListener('change', (e) => {
+    console.log('Cover image file selected:', e.target.files[0]);
     if (e.target.files[0]) {
       coverImageFile = e.target.files[0];
+      console.log('coverImageFile set to:', coverImageFile);
       previewImage(coverImageFile, 'coverImagePreview');
     }
   });
@@ -753,6 +755,7 @@ async function handleProductSubmit(e) {
   }
   
   if (!isEdit && !coverImageFile) {
+    console.log('No cover image file selected');
     showToast('Cover image is required', 'error');
     return;
   }
@@ -779,6 +782,7 @@ async function handleProductSubmit(e) {
   formData.append('featured_product', document.getElementById('featuredProduct').checked);
   
   if (coverImageFile) {
+    console.log('Appending cover image to FormData:', coverImageFile);
     formData.append('cover_image', coverImageFile);
   }
   
