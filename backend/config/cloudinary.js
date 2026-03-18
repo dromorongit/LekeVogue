@@ -62,74 +62,80 @@ const uploadToCloudinary = (fileBuffer, folder) => {
 };
 
 // Middleware for single cover image upload
-const uploadCoverImage = async (req, res, next) => {
-  upload.single('cover_image')(req, res, async (err) => {
-    // Don't error on unexpected field - just continue without file
-    if (err && !err.message.includes('Unexpected field')) {
-      console.error('Multer cover image error:', err.message);
-      return res.status(400).json({
-        success: false,
-        message: err.message
-      });
-    }
-    
-    try {
-      // Only upload if there's actually a file with content
-      if (req.file && req.file.buffer && req.file.buffer.length > 0) {
-        const result = await uploadToCloudinary(req.file.buffer, 'lekevogue/products/covers');
-        req.file.path = result.secure_url;
-        req.file.cloudinaryResult = result;
-      } else {
-        // No file uploaded - will be handled by route
-        req.file = undefined;
+const uploadCoverImage = (req, res, next) => {
+  return new Promise((resolve, reject) => {
+    upload.single('cover_image')(req, res, async (err) => {
+      // Don't error on unexpected field - just continue without file
+      if (err && !err.message.includes('Unexpected field')) {
+        console.error('Multer cover image error:', err.message);
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
       }
-      next();
-    } catch (error) {
-      console.error('Cloudinary cover image upload error:', error.message);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to upload image to Cloudinary: ' + error.message
-      });
-    }
+      
+      try {
+        // Only upload if there's actually a file with content
+        if (req.file && req.file.buffer && req.file.buffer.length > 0) {
+          const result = await uploadToCloudinary(req.file.buffer, 'lekevogue/products/covers');
+          req.file.path = result.secure_url;
+          req.file.cloudinaryResult = result;
+        } else {
+          // No file uploaded - will be handled by route
+          req.file = undefined;
+        }
+        next();
+        resolve();
+      } catch (error) {
+        console.error('Cloudinary cover image upload error:', error.message);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload image to Cloudinary: ' + error.message
+        });
+      }
+    });
   });
 };
 
 // Middleware for multiple additional images upload
-const uploadAdditionalImages = async (req, res, next) => {
-  upload.array('additional_images', 5)(req, res, async (err) => {
-    // Don't error on unexpected field - just continue without files
-    if (err && !err.message.includes('Unexpected field')) {
-      console.error('Multer additional images error:', err.message);
-      return res.status(400).json({
-        success: false,
-        message: err.message
-      });
-    }
-    
-    try {
-      // Only upload if there are actually files with content
-      if (req.files && req.files.length > 0) {
-        const validFiles = req.files.filter(f => f.buffer && f.buffer.length > 0);
-        if (validFiles.length > 0) {
-          const uploadPromises = validFiles.map(file => 
-            uploadToCloudinary(file.buffer, 'lekevogue/products/additional')
-          );
-          const results = await Promise.all(uploadPromises);
-          req.files = validFiles.map((file, index) => ({
-            ...file,
-            path: results[index].secure_url,
-            cloudinaryResult: results[index]
-          }));
-        }
+const uploadAdditionalImages = (req, res, next) => {
+  return new Promise((resolve, reject) => {
+    upload.array('additional_images', 5)(req, res, async (err) => {
+      // Don't error on unexpected field - just continue without files
+      if (err && !err.message.includes('Unexpected field')) {
+        console.error('Multer additional images error:', err.message);
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
       }
-      next();
-    } catch (error) {
-      console.error('Cloudinary additional images upload error:', error.message);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to upload images to Cloudinary: ' + error.message
-      });
-    }
+      
+      try {
+        // Only upload if there are actually files with content
+        if (req.files && req.files.length > 0) {
+          const validFiles = req.files.filter(f => f.buffer && f.buffer.length > 0);
+          if (validFiles.length > 0) {
+            const uploadPromises = validFiles.map(file => 
+              uploadToCloudinary(file.buffer, 'lekevogue/products/additional')
+            );
+            const results = await Promise.all(uploadPromises);
+            req.files = validFiles.map((file, index) => ({
+              ...file,
+              path: results[index].secure_url,
+              cloudinaryResult: results[index]
+            }));
+          }
+        }
+        next();
+        resolve();
+      } catch (error) {
+        console.error('Cloudinary additional images upload error:', error.message);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload images to Cloudinary: ' + error.message
+        });
+      }
+    });
   });
 };
 
