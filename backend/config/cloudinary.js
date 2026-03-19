@@ -78,7 +78,9 @@ const uploadToCloudinary = (filePath, folder) => {
 // Middleware for single cover image upload
 const uploadCoverImage = (req, res, next) => {
   return new Promise((resolve, reject) => {
+    console.log('uploadCoverImage middleware called');
     upload.single('cover_image')(req, res, async (err) => {
+      console.log('Multer callback called, err:', err);
       // Don't error on unexpected field - just continue without file
       if (err && !err.message.includes('Unexpected field')) {
         console.error('Multer cover image error:', err.message);
@@ -87,6 +89,8 @@ const uploadCoverImage = (req, res, next) => {
           message: err.message
         });
       }
+      
+      console.log('After multer, req.file:', req.file);
       
       try {
         // Check if file was uploaded to disk
