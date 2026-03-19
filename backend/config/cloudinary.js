@@ -1,6 +1,7 @@
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 // Configure Cloudinary
 cloudinary.config({
@@ -18,8 +19,20 @@ cloudinary.api.ping((error, result) => {
   }
 });
 
-// Configure multer for memory storage (we'll upload to Cloudinary directly)
-const storage = multer.memoryStorage();
+// Configure multer for disk storage (works on Railway)
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = './uploads';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
 
 const upload = multer({ 
   storage: storage,
@@ -37,10 +50,11 @@ const upload = multer({
   }
 });
 
-// Custom upload function that uploads directly to Cloudinary from a stream
-const uploadStreamToCloudinary = (readStream, folder) => {
+// Custom upload function that uploads file from disk to Cloudinary
+const uploadToCloudinary = (filePath, folder) => {
   return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
+    cloudinary.uploader.upload(
+      filePath,
       {
         folder: folder,
         resource_type: 'image',
@@ -52,12 +66,12 @@ const uploadStreamToCloudinary = (readStream, folder) => {
         if (error) {
           reject(error);
         } else {
+          // Delete the local file after upload to Cloudinary
+          fs.unlink(filePath, () => {});
           resolve(result);
         }
       }
     );
-    
-    readStream.pipe(uploadStream);
   });
 };
 
@@ -74,36 +88,17 @@ const uploadCoverImage = (req, res, next) => {
         });
       }
       
-      console.log('Cover image upload middleware - req.file:', req.file);
-      console.log('Cover image upload middleware - req.file.buffer:', req.file.buffer);
-      console.log('Cover image upload middleware - req.file.stream:', req.file.stream);
-      
       try {
-        // Check if there's a file with content - buffer may or may not exist with memoryStorage
-        const hasFileContent = req.file && (
-          (req.file.buffer && req.file.buffer.length > 0) || 
-          (req.file.size > 0)
-        );
-        
-        if (hasFileContent) {
-          console.log('Uploading cover image to Cloudinary...');
-          let result;
-          
-          // Use stream if available (Railway), otherwise use buffer
-          if (req.file.stream) {
-            result = await uploadStreamToCloudinary(req.file.stream, 'lekevogue/products/covers');
-          } else if (req.file.buffer) {
-            result = await uploadToCloudinary(req.file.buffer, 'lekevogue/products/covers');
-          } else {
-            throw new Error('No file content available');
-          }
-          
+        // Check if file was uploaded to disk
+        if (req.file && req.file.path && req.file.size > 0) {
+          console.log('Uploading cover image to Cloudinary from:', req.file.path);
+          const result = await uploadToCloudinary(req.file.path, 'lekevogue/products/covers');
           req.file.path = result.secure_url;
           req.file.cloudinaryResult = result;
           console.log('Cover image uploaded successfully:', result.secure_url);
         } else {
           // No file uploaded - will be handled by route
-          console.log('No cover image file found in request - file has no content');
+          console.log('No cover image file found in request');
           req.file = undefined;
         }
         next();
@@ -133,21 +128,13 @@ const uploadAdditionalImages = (req, res, next) => {
       }
       
       try {
-        // Only upload if there are actually files with content
+        // Only upload if there are files with content
         if (req.files && req.files.length > 0) {
-          const validFiles = req.files.filter(f => 
-            (f.buffer && f.buffer.length > 0) || (f.size > 0)
-          );
+          const validFiles = req.files.filter(f => f.path && f.size > 0);
           if (validFiles.length > 0) {
-            // Upload each file using stream or buffer
-            const uploadPromises = validFiles.map(async (file) => {
-              if (file.stream) {
-                return await uploadStreamToCloudinary(file.stream, 'lekevogue/products/additional');
-              } else if (file.buffer) {
-                return await uploadToCloudinary(file.buffer, 'lekevogue/products/additional');
-              }
-              throw new Error('No file content available');
-            });
+            const uploadPromises = validFiles.map(file => 
+              uploadToCloudinary(file.path, 'lekevogue/products/additional')
+            );
             const results = await Promise.all(uploadPromises);
             req.files = validFiles.map((file, index) => ({
               ...file,
