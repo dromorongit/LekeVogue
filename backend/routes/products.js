@@ -11,7 +11,7 @@ const {
 // @route   POST /api/products
 // @desc    Create a new product
 // @access  Protected
-router.post('/', protect, uploadCoverImage, uploadAdditionalImages, async (req, res) => {
+router.post('/', protect, uploadCoverImage, async (req, res) => {
   try {
     const {
       product_name,
@@ -247,7 +247,7 @@ router.get('/:id', async (req, res) => {
 // @route   PUT /api/products/:id
 // @desc    Update a product
 // @access  Protected
-router.put('/:id', protect, uploadCoverImage, uploadAdditionalImages, async (req, res) => {
+router.put('/:id', protect, uploadCoverImage, async (req, res) => {
   try {
     const {
       product_name,

@@ -78,37 +78,60 @@ const uploadToCloudinary = (filePath, folder) => {
 // Middleware for single cover image upload
 const uploadCoverImage = (req, res, next) => {
   return new Promise((resolve, reject) => {
-    console.log('uploadCoverImage middleware called');
-    upload.single('cover_image')(req, res, async (err) => {
-      console.log('Multer callback called, err:', err);
-      // Don't error on unexpected field - just continue without file
-      if (err && !err.message.includes('Unexpected field')) {
-        console.error('Multer cover image error:', err.message);
+    // Use fields() to handle both cover_image and additional_images
+    const uploadFields = upload.fields([
+      { name: 'cover_image', maxCount: 1 },
+      { name: 'additional_images', maxCount: 5 }
+    ]);
+    
+    uploadFields(req, res, async (err) => {
+      console.log('Multer fields callback, err:', err);
+      
+      // Don't error on unexpected field - just continue
+      if (err && err.code !== 'LIMIT_UNEXPECTED_FILE') {
+        console.error('Multer error:', err.message);
         return res.status(400).json({
           success: false,
           message: err.message
         });
       }
       
-      console.log('After multer, req.file:', req.file);
+      console.log('After multer, req.files:', req.files);
       
       try {
-        // Check if file was uploaded to disk
-        if (req.file && req.file.path && req.file.size > 0) {
-          console.log('Uploading cover image to Cloudinary from:', req.file.path);
-          const result = await uploadToCloudinary(req.file.path, 'lekevogue/products/covers');
-          req.file.path = result.secure_url;
-          req.file.cloudinaryResult = result;
-          console.log('Cover image uploaded successfully:', result.secure_url);
-        } else {
-          // No file uploaded - will be handled by route
-          console.log('No cover image file found in request');
-          req.file = undefined;
+        // Handle cover image
+        if (req.files && req.files['cover_image'] && req.files['cover_image'][0]) {
+          const coverFile = req.files['cover_image'][0];
+          console.log('Uploading cover image to Cloudinary from:', coverFile.path);
+          const result = await uploadToCloudinary(coverFile.path, 'lekevogue/products/covers');
+          req.file = {
+            ...coverFile,
+            path: result.secure_url,
+            cloudinaryResult: result
+          };
+          console.log('Cover image uploaded:', result.secure_url);
         }
+        
+        // Handle additional images
+        if (req.files && req.files['additional_images']) {
+          const additionalFiles = req.files['additional_images'];
+          console.log('Uploading', additionalFiles.length, 'additional images...');
+          const uploadPromises = additionalFiles.map(file => 
+            uploadToCloudinary(file.path, 'lekevogue/products/additional')
+          );
+          const results = await Promise.all(uploadPromises);
+          req.files = additionalFiles.map((file, index) => ({
+            ...file,
+            path: results[index].secure_url,
+            cloudinaryResult: results[index]
+          }));
+          console.log('Additional images uploaded');
+        }
+        
         next();
         resolve();
       } catch (error) {
-        console.error('Cloudinary cover image upload error:', error.message);
+        console.error('Cloudinary upload error:', error.message);
         return res.status(500).json({
           success: false,
           message: 'Failed to upload image to Cloudinary: ' + error.message
