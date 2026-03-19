@@ -75,19 +75,26 @@ const uploadCoverImage = (req, res, next) => {
       }
       
       console.log('Cover image upload middleware - req.file:', req.file);
-      console.log('Cover image upload middleware - req.body:', req.body);
+      console.log('Cover image upload middleware - req.file.buffer:', req.file.buffer);
       
       try {
-        // Only upload if there's actually a file with content
-        if (req.file && req.file.buffer && req.file.buffer.length > 0) {
+        // Check if there's a file with content - buffer may or may not exist with memoryStorage
+        const hasFileContent = req.file && (
+          (req.file.buffer && req.file.buffer.length > 0) || 
+          (req.file.size > 0)
+        );
+        
+        if (hasFileContent) {
           console.log('Uploading cover image to Cloudinary...');
-          const result = await uploadToCloudinary(req.file.buffer, 'lekevogue/products/covers');
+          // Use buffer if available, otherwise we need a different approach
+          const fileBuffer = req.file.buffer || Buffer.from([]);
+          const result = await uploadToCloudinary(fileBuffer, 'lekevogue/products/covers');
           req.file.path = result.secure_url;
           req.file.cloudinaryResult = result;
           console.log('Cover image uploaded successfully:', result.secure_url);
         } else {
           // No file uploaded - will be handled by route
-          console.log('No cover image file found in request');
+          console.log('No cover image file found in request - file has no content');
           req.file = undefined;
         }
         next();
