@@ -63,6 +63,16 @@ const productSchema = new mongoose.Schema({
     of: [String],
     default: {}
   },
+  // Size stock: { "Black": { "38": 2, "39": 4 }, "White": { "40": 3 } }
+  // This explicitly tracks stock quantity per color and size
+  size_stock: {
+    type: Map,
+    of: {
+      type: Map,
+      of: Number
+    },
+    default: {}
+  },
   dimensions_in_inches: {
     type: String,
     default: ''
@@ -75,7 +85,7 @@ const productSchema = new mongoose.Schema({
   },
   cover_image: {
     type: String,
-    required: [true, 'Cover image is required']
+    default: 'https://via.placeholder.com/400x400?text=No+Image'
   },
   additional_images: [{
     type: String

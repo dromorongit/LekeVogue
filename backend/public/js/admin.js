@@ -124,9 +124,10 @@ async function handleEditProductSubmit(e) {
   formData.append('sizes', document.getElementById('editSizes').value);
   formData.append('colors', document.getElementById('editColors').value);
   
-  // Get color-size data
-  const editColorSizes = getColorSizeData('editColorSizeMatrix', 'edit-color-size-color', 'edit-color-size-sizes');
+  // Get color-size data with stock per size
+  const { colorSizes: editColorSizes, sizeStocks: editSizeStocks } = getColorSizeData('editColorSizeMatrix', 'edit-color-size-color', 'edit-color-size-sizes');
   formData.append('color_sizes', JSON.stringify(editColorSizes));
+  formData.append('size_stock', JSON.stringify(editSizeStocks));
   
   formData.append('dimensions_in_inches', document.getElementById('editDimensions').value);
   formData.append('stock_quantity', stockQuantity || 0);
@@ -199,7 +200,9 @@ async function editProduct(id) {
       editColorSizeContainer.innerHTML = '';
       if (product.color_sizes && Object.keys(product.color_sizes).length > 0) {
         for (const [color, sizes] of Object.entries(product.color_sizes)) {
-          addEditColorSizeRow(color, sizes.join(', '));
+          // Get stock for this color/size combination
+          const sizeStocks = product.size_stock && product.size_stock[color] ? product.size_stock[color] : {};
+          addEditColorSizeRow(color, sizes.join(', '), sizeStocks);
         }
       }
       
@@ -754,11 +757,9 @@ async function handleProductSubmit(e) {
     return;
   }
   
-  if (!isEdit && !coverImageFile) {
-    console.log('No cover image file selected');
-    showToast('Cover image is required', 'error');
-    return;
-  }
+  // Cover image is now optional - products can be saved without cover image
+  // Only validate if explicitly needed
+  /* Cover image is optional now */
   
   const formData = new FormData();
   formData.append('product_name', productName);
@@ -773,9 +774,10 @@ async function handleProductSubmit(e) {
   formData.append('sizes', document.getElementById('sizes').value);
   formData.append('colors', document.getElementById('colors').value);
   
-  // Get color-size data
-  const colorSizes = getColorSizeData('colorSizeMatrix', 'color-size-color', 'color-size-sizes');
+  // Get color-size data with stock per size
+  const { colorSizes, sizeStocks } = getColorSizeData('colorSizeMatrix', 'color-size-color', 'color-size-sizes');
   formData.append('color_sizes', JSON.stringify(colorSizes));
+  formData.append('size_stock', JSON.stringify(sizeStocks));
   
   formData.append('dimensions_in_inches', document.getElementById('dimensions').value);
   formData.append('stock_quantity', stockQuantity || 0);
@@ -892,50 +894,104 @@ function debounce(func, wait) {
 }
 
 // Color-Size Matrix Functions
-function addColorSizeRow(color = '', sizes = '') {
+function addColorSizeRow(color = '', sizes = '', sizeStocks = {}) {
   const container = document.getElementById('colorSizeMatrix');
   const row = document.createElement('div');
   row.className = 'color-size-row';
-  row.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: center;';
+  row.style.cssText = 'display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; align-items: flex-start;';
   row.innerHTML = `
-    <input type="text" placeholder="Color (e.g., White)" value="${color}" class="color-size-color" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-    <input type="text" placeholder="Sizes (e.g., 30, 31)" value="${sizes}" class="color-size-sizes" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-    <button type="button" onclick="this.parentElement.remove(); updateStockFromColorSize();" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
-      <i class="fas fa-times"></i>
-    </button>
+    <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+      <input type="text" placeholder="Color (e.g., Black)" value="${color}" class="color-size-color" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+      <input type="text" placeholder="Sizes (e.g., 38, 39)" value="${sizes}" class="color-size-sizes" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+      <button type="button" onclick="this.closest('.color-size-row').remove(); updateStockFromColorSize();" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="size-stock-inputs" style="width: 100%; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+      <span style="width: 100%; font-size: 12px; color: #666;">Stock per size:</span>
+    </div>
   `;
   container.appendChild(row);
   
-  // Add event listener to the sizes input for auto-calculation
+  // Add stock input fields for each size
   const sizesInput = row.querySelector('.color-size-sizes');
-  sizesInput.addEventListener('input', updateStockFromColorSize);
+  const stockInputsContainer = row.querySelector('.size-stock-inputs');
   
-  // Initial calculation if sizes are provided
+  const updateSizeStockInputs = () => {
+    const sizeList = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
+    // Clear existing stock inputs
+    const existingStockInputs = stockInputsContainer.querySelectorAll('.size-stock-item');
+    existingStockInputs.forEach(el => el.remove());
+    
+    sizeList.forEach(size => {
+      const stockValue = sizeStocks[size] || 1;
+      const stockItem = document.createElement('div');
+      stockItem.className = 'size-stock-item';
+      stockItem.style.cssText = 'display: flex; align-items: center; gap: 5px; background: white; padding: 5px 10px; border-radius: 4px; border: 1px solid #ddd;';
+      stockItem.innerHTML = `
+        <span style="font-size: 12px;">Size ${size}:</span>
+        <input type="number" min="0" value="${stockValue}" class="size-stock-value" data-size="${size}" style="width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;" placeholder="0">
+      `;
+      stockInputsContainer.appendChild(stockItem);
+    });
+  };
+  
+  sizesInput.addEventListener('input', updateSizeStockInputs);
+  
+  // Initial setup if sizes are provided
   if (sizes) {
+    updateSizeStockInputs();
     updateStockFromColorSize();
   }
 }
 
-function addEditColorSizeRow(color = '', sizes = '') {
+function addEditColorSizeRow(color = '', sizes = '', sizeStocks = {}) {
   const container = document.getElementById('editColorSizeMatrix');
   const row = document.createElement('div');
   row.className = 'edit-color-size-row';
-  row.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: center;';
+  row.style.cssText = 'display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; align-items: flex-start;';
   row.innerHTML = `
-    <input type="text" placeholder="Color (e.g., White)" value="${color}" class="edit-color-size-color" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-    <input type="text" placeholder="Sizes (e.g., 30, 31)" value="${sizes}" class="edit-color-size-sizes" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-    <button type="button" onclick="this.parentElement.remove(); updateStockFromColorSizeEdit();" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
-      <i class="fas fa-times"></i>
-    </button>
+    <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+      <input type="text" placeholder="Color (e.g., Black)" value="${color}" class="edit-color-size-color" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+      <input type="text" placeholder="Sizes (e.g., 38, 39)" value="${sizes}" class="edit-color-size-sizes" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+      <button type="button" onclick="this.closest('.edit-color-size-row').remove(); updateStockFromColorSizeEdit();" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="edit-size-stock-inputs" style="width: 100%; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+      <span style="width: 100%; font-size: 12px; color: #666;">Stock per size:</span>
+    </div>
   `;
   container.appendChild(row);
   
-  // Add event listener to the sizes input for auto-calculation
+  // Add stock input fields for each size
   const sizesInput = row.querySelector('.edit-color-size-sizes');
-  sizesInput.addEventListener('input', updateStockFromColorSizeEdit);
+  const stockInputsContainer = row.querySelector('.edit-size-stock-inputs');
   
-  // Initial calculation if sizes are provided
+  const updateSizeStockInputs = () => {
+    const sizeList = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
+    // Clear existing stock inputs
+    const existingStockInputs = stockInputsContainer.querySelectorAll('.edit-size-stock-item');
+    existingStockInputs.forEach(el => el.remove());
+    
+    sizeList.forEach(size => {
+      const stockValue = sizeStocks[size] || 1;
+      const stockItem = document.createElement('div');
+      stockItem.className = 'edit-size-stock-item';
+      stockItem.style.cssText = 'display: flex; align-items: center; gap: 5px; background: white; padding: 5px 10px; border-radius: 4px; border: 1px solid #ddd;';
+      stockItem.innerHTML = `
+        <span style="font-size: 12px;">Size ${size}:</span>
+        <input type="number" min="0" value="${stockValue}" class="edit-size-stock-value" data-size="${size}" style="width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;" placeholder="0">
+      `;
+      stockInputsContainer.appendChild(stockItem);
+    });
+  };
+  
+  sizesInput.addEventListener('input', updateSizeStockInputs);
+  
+  // Initial setup if sizes are provided
   if (sizes) {
+    updateSizeStockInputs();
     updateStockFromColorSizeEdit();
   }
 }
@@ -943,23 +999,38 @@ function addEditColorSizeRow(color = '', sizes = '') {
 // Helper to collect color-size data from form
 function getColorSizeData(containerId, colorClass, sizesClass) {
   const container = document.getElementById(containerId);
+  const isEdit = containerId.includes('edit');
+  const colorClassSelector = isEdit ? '.edit-color-size-color' : '.color-size-color';
+  const sizesClassSelector = isEdit ? '.edit-color-size-sizes' : '.color-size-sizes';
+  const stockClassSelector = isEdit ? '.edit-size-stock-value' : '.size-stock-value';
+  
   const rows = container.querySelectorAll('.color-size-row, .edit-color-size-row');
   const colorSizes = {};
+  const sizeStocks = {};
   
   rows.forEach(row => {
-    const colorInput = row.querySelector(`.${colorClass}`);
-    const sizesInput = row.querySelector(`.${sizesClass}`);
+    const colorInput = row.querySelector(colorClassSelector);
+    const sizesInput = row.querySelector(sizesClassSelector);
     
     if (colorInput && sizesInput && colorInput.value.trim()) {
       const color = colorInput.value.trim();
       const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
       if (sizes.length > 0) {
         colorSizes[color] = sizes;
+        
+        // Collect stock per size
+        sizeStocks[color] = {};
+        const stockInputs = row.querySelectorAll(stockClassSelector);
+        stockInputs.forEach(stockInput => {
+          const size = stockInput.dataset.size;
+          const stockValue = parseInt(stockInput.value) || 0;
+          sizeStocks[color][size] = stockValue;
+        });
       }
     }
   });
   
-  return colorSizes;
+  return { colorSizes, sizeStocks };
 }
 
 // Calculate and update stock quantity from Color-Size Matrix (for Add Product form)
@@ -970,10 +1041,20 @@ function updateStockFromColorSize() {
   
   rows.forEach(row => {
     const sizesInput = row.querySelector('.color-size-sizes');
+    const stockInputs = row.querySelectorAll('.size-stock-value');
+    
     if (sizesInput && sizesInput.value.trim()) {
-      // Split by comma and count each size (including duplicates)
-      const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
-      totalStock += sizes.length;
+      // If stock inputs exist, sum them up
+      if (stockInputs.length > 0) {
+        stockInputs.forEach(stockInput => {
+          const stockValue = parseInt(stockInput.value) || 0;
+          totalStock += stockValue;
+        });
+      } else {
+        // Fallback: count sizes
+        const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
+        totalStock += sizes.length;
+      }
     }
   });
   
@@ -992,10 +1073,20 @@ function updateStockFromColorSizeEdit() {
   
   rows.forEach(row => {
     const sizesInput = row.querySelector('.edit-color-size-sizes');
+    const stockInputs = row.querySelectorAll('.edit-size-stock-value');
+    
     if (sizesInput && sizesInput.value.trim()) {
-      // Split by comma and count each size (including duplicates)
-      const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
-      totalStock += sizes.length;
+      // If stock inputs exist, sum them up
+      if (stockInputs.length > 0) {
+        stockInputs.forEach(stockInput => {
+          const stockValue = parseInt(stockInput.value) || 0;
+          totalStock += stockValue;
+        });
+      } else {
+        // Fallback: count sizes
+        const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
+        totalStock += sizes.length;
+      }
     }
   });
   

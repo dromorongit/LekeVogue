@@ -131,12 +131,16 @@
     <script>
         // Product details state - store quantities for each variant
         let variantQuantities = {}; // { 'M': 5, 'L': 4, 'White': 3 }
+        let availableStock = {}; // Store available stock per variant: { 'Black': { '38': 2, '39': 4 } }
+        let currentProductId = null;
+        const API_BASE_URL = 'https://lekevogue-production.up.railway.app/api';
         
         // Initialize product page with API data
         async function initProduct() {
             // Get product ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const productId = urlParams.get('id');
+            currentProductId = productId;
             
             if (!productId) {
                 window.location.href = 'shop.html';
@@ -151,6 +155,9 @@
                     window.location.href = 'shop.html';
                     return;
                 }
+                
+                // Fetch available stock
+                await fetchProductStock(productId);
                 
                 // Update page title
                 document.title = `${product.name} - Leke Vogue Enterprise`;
@@ -190,7 +197,10 @@
                         <div class="product-option-group">
                             <label>Select Color & Sizes:</label>
                             ${Object.entries(product.color_sizes).map(([color, sizes]) => {
-                                // Count occurrences of each size
+                                // Get available stock for this color
+                                const colorStock = availableStock[color] || {};
+                                
+                                // Count occurrences of each size from color_sizes
                                 const sizeCounts = {};
                                 sizes.forEach(size => {
                                     sizeCounts[size] = (sizeCounts[size] || 0) + 1;
@@ -202,16 +212,24 @@
                                             <span class="color-name">Color: ${color}</span>
                                         </div>
                                         <div class="variant-quantity-grid">
-                                            ${Object.entries(sizeCounts).map(([size, count]) => `
-                                                <div class="variant-item">
-                                                    <span class="variant-name">Size ${size} <span class="size-qty">(Qty ${count})</span></span>
-                                                    <div class="quantity-controls small">
-                                                        <button type="button" onclick="updateVariantQuantity('colorsize_${color}_${size}', -1)">-</button>
-                                                        <span id="qty_colorsize_${color}_${size}">0</span>
-                                                        <button type="button" onclick="updateVariantQuantity('colorsize_${color}_${size}', 1)">+</button>
+                                            ${Object.entries(sizeCounts).map(([size, count]) => {
+                                                // Get actual available stock
+                                                const available = colorStock[size] !== undefined ? colorStock[size] : count;
+                                                const isOutOfStock = available <= 0;
+                                                
+                                                return `
+                                                    <div class="variant-item ${isOutOfStock ? 'out-of-stock' : ''}">
+                                                        <span class="variant-name">Size ${size} <span class="size-qty">${isOutOfStock ? '(Out of Stock)' : `(${available} available)`}</span></span>
+                                                        ${!isOutOfStock ? `
+                                                        <div class="quantity-controls small">
+                                                            <button type="button" onclick="updateVariantQuantity('colorsize_${color}_${size}', -1)">-</button>
+                                                            <span id="qty_colorsize_${color}_${size}">0</span>
+                                                            <button type="button" onclick="updateVariantQuantity('colorsize_${color}_${size}', 1)">+</button>
+                                                        </div>
+                                                        ` : '<span style="color: red; font-size: 12px;">Sold Out</span>'}
                                                     </div>
-                                                </div>
-                                            `).join('')}
+                                                `;
+                                            }).join('')}
                                         </div>
                                     </div>
                                 `;
@@ -348,10 +366,56 @@
         // Initialize on page load
         initProduct();
         
+        // Fetch product stock from API
+        async function fetchProductStock(productId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/products/${productId}/stock`);
+                const data = await response.json();
+                
+                if (data.success && data.data.sizeStock) {
+                    availableStock = data.data.sizeStock;
+                } else if (data.success && data.data.colorSizes) {
+                    // Fallback: calculate stock from color_sizes array
+                    const colorSizes = data.data.colorSizes;
+                    for (const [color, sizes] of Object.entries(colorSizes)) {
+                        availableStock[color] = {};
+                        sizes.forEach(size => {
+                            availableStock[color][size] = (availableStock[color][size] || 0) + 1;
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching stock:', error);
+            }
+        }
+        
+        // Get available stock for a specific variant
+        function getAvailableStock(color, size) {
+            if (color && size && availableStock[color]) {
+                return availableStock[color][size] || 0;
+            }
+            return 999; // Unlimited if no specific stock tracking
+        }
+        
         // Global functions for product details
         function updateVariantQuantity(variantKey, change) {
             const currentQty = variantQuantities[variantKey] || 0;
-            const newQty = Math.max(0, currentQty + change);
+            let newQty = currentQty + change;
+            
+            // Check max allowed quantity based on available stock
+            if (variantKey.startsWith('colorsize_')) {
+                const parts = variantKey.split('_');
+                const color = parts[1];
+                const size = parts.slice(2).join('_');
+                const available = getAvailableStock(color, size);
+                
+                if (newQty > available) {
+                    Cart.showToast(`Maximum ${available} available for Size ${size}`, 'error');
+                    return;
+                }
+            }
+            
+            newQty = Math.max(0, newQty);
             variantQuantities[variantKey] = newQty;
             
             // Update display
@@ -385,7 +449,7 @@
             });
         }
         
-        function addVariantsToCart(productId) {
+        async function addVariantsToCart(productId) {
             // Collect all variants with quantities
             const variants = [];
             
@@ -397,7 +461,15 @@
                     if (type === 'colorsize') {
                         // For colorsize type: colorsize_Color_Size -> color = Color, size = Size
                         const color = parts[1];
-                        const size = parts[2];
+                        const size = parts.slice(2).join('_');
+                        
+                        // Validate stock before adding
+                        const available = getAvailableStock(color, size);
+                        if (qty > available) {
+                            Cart.showToast(`Only ${available} available for Size ${size} in ${color}`, 'error');
+                            return;
+                        }
+                        
                         variants.push({ type, color, size, quantity: qty });
                     } else {
                         const value = parts.slice(1).join('_');
@@ -407,7 +479,7 @@
             }
             
             if (variants.length === 0) {
-                alert('Please select at least one item with quantity');
+                Cart.showToast('Please select at least one item with quantity', 'error');
                 return;
             }
             

@@ -327,6 +327,44 @@
             handler.openIframe();
         }
         
+        // Check stock availability before order
+        async function checkStock(cartItems) {
+            try {
+                const items = cartItems.map(item => ({
+                    productId: item.id,
+                    size: item.size || null,
+                    color: item.color || null,
+                    quantity: item.quantity || 1
+                }));
+                
+                const response = await fetch(`${API_BASE_URL}/products/check-stock`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ items })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    // Show error message about stock
+                    if (data.stockInfo) {
+                        const errors = data.stockInfo.filter(item => !item.canFulfill);
+                        if (errors.length > 0) {
+                            const errorMsg = errors.map(e => `${e.productName} - ${e.color || ''} ${e.size ? 'Size ' + e.size : ''}: only ${e.available} available`).join(', ');
+                            Cart.showToast(`Stock issue: ${errorMsg}`, 'error');
+                        }
+                    }
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error('Error checking stock:', error);
+                return true; // Allow order to proceed if check fails
+            }
+        }
+        
         async function deductStock(cartItems) {
             try {
                 const items = cartItems.map(item => ({
@@ -350,13 +388,17 @@
                     console.log('Stock deducted successfully');
                 } else {
                     console.warn('Stock deduction warning:', data.message);
+                    // Show error if stock deduction fails
+                    if (data.errors) {
+                        Cart.showToast(`Stock error: ${data.errors.join(', ')}`, 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Error deducting stock:', error);
             }
         }
         
-        function sendToWhatsApp() {
+        async function sendToWhatsApp() {
             if (!validateForm()) return;
             
             const cartItems = Cart.getCart();
@@ -367,59 +409,67 @@
             
             customerData = getCustomerData();
             
-            // First deduct stock, then proceed with WhatsApp
-            deductStock(cartItems).then(() => {
-                // Generate WhatsApp message
-                let message = `*New Order from Leke Vogue Website*\n\n`;
-                message += `*Customer Details*\n`;
-                message += `Name: ${customerData.fullName}\n`;
-                message += `Phone: ${customerData.phone}\n`;
-                if (customerData.email) message += `Email: ${customerData.email}\n`;
-                if (customerData.notes) message += `Notes: ${customerData.notes}\n`;
-                message += `\n*Ordered Items*\n`;
-                
-                // Get product details for message
-                const productPromises = cartItems.map(async (item) => {
-                    const product = await getProductById(item.id);
-                    return { ...item, product };
+            // First check stock availability
+            const stockOk = await checkStock(cartItems);
+            if (!stockOk) return;
+            
+            // Then deduct stock and proceed with WhatsApp
+            await deductStock(cartItems);
+            
+            // Generate WhatsApp message
+            let message = `*New Order from Leke Vogue Website*\n\n`;
+            message += `*Customer Details*\n`;
+            message += `Name: ${customerData.fullName}\n`;
+            message += `Phone: ${customerData.phone}\n`;
+            if (customerData.email) message += `Email: ${customerData.email}\n`;
+            if (customerData.notes) message += `Notes: ${customerData.notes}\n`;
+            message += `\n*Ordered Items*\n`;
+            
+            // Get product details for message
+            const productPromises = cartItems.map(async (item) => {
+                const product = await getProductById(item.id);
+                return { ...item, product };
+            });
+            
+            Promise.all(productPromises).then(items => {
+                let total = 0;
+                items.forEach(item => {
+                    if (!item.product) return;
+                    const itemTotal = item.product.price * item.quantity;
+                    total += itemTotal;
+                    
+                    let itemDetails = `${item.product.name} x${item.quantity}`;
+                    if (item.size) itemDetails += ` (Size: ${item.size})`;
+                    if (item.color) itemDetails += ` (Color: ${item.color})`;
+                    message += `- ${itemDetails} = GHS ${itemTotal.toFixed(2)}\n`;
                 });
                 
-                Promise.all(productPromises).then(items => {
-                    let total = 0;
-                    items.forEach(item => {
-                        if (!item.product) return;
-                        const itemTotal = item.product.price * item.quantity;
-                        total += itemTotal;
-                        
-                        let itemDetails = `${item.product.name} x${item.quantity}`;
-                        if (item.size) itemDetails += ` (Size: ${item.size})`;
-                        if (item.color) itemDetails += ` (Color: ${item.color})`;
-                        message += `- ${itemDetails} = GHS ${itemTotal.toFixed(2)}\n`;
-                    });
-                    
-                    message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;
-                    message += `Order placed via Leke Vogue Website`;
-                    
-                    // Open WhatsApp
-                    const encodedMessage = encodeURIComponent(message);
-                    window.open(`https://wa.me/233500098510?text=${encodedMessage}`, '_blank');
-                    
-                    // Clear cart
-                    Cart.clearCart();
-                    Cart.showToast('Order sent via WhatsApp!', 'success');
-                    
-                    // Redirect to home after delay
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 2000);
-                });
+                message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;
+                message += `Order placed via Leke Vogue Website`;
+                
+                // Open WhatsApp
+                const encodedMessage = encodeURIComponent(message);
+                window.open(`https://wa.me/233500098510?text=${encodedMessage}`, '_blank');
+                
+                // Clear cart
+                Cart.clearCart();
+                Cart.showToast('Order sent via WhatsApp!', 'success');
+                
+                // Redirect to home after delay
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
             });
         }
         
         async function completeOrder() {
             const cartItems = Cart.getCart();
             
-            // First deduct stock, then proceed
+            // First check stock availability
+            const stockOk = await checkStock(cartItems);
+            if (!stockOk) return;
+            
+            // Then deduct stock and proceed
             await deductStock(cartItems);
             
             let total = 0;
