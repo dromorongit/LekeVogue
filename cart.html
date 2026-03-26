@@ -161,13 +161,13 @@
     <script src="js/data.js"></script>
     <script src="js/main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            renderCart();
+        document.addEventListener('DOMContentLoaded', async function() {
+            await renderCart();
             UI.init();
         });
         
-        function renderCart() {
-            const cartItems = Cart.getCartItems();
+        async function renderCart() {
+            const cartItems = await Cart.getCartItemsAsync();
             const cartItemsContainer = document.getElementById('cartItems');
             const emptyCart = document.getElementById('emptyCart');
             const cartContent = document.getElementById('cartContent');
@@ -223,12 +223,12 @@
             cartItemsContainer.innerHTML = itemsHTML;
             
             // Update subtotal
-            const subtotal = Cart.getCartTotal();
+            const subtotal = await Cart.getCartTotal();
             document.getElementById('cartSubtotal').textContent = formatPrice(subtotal);
         }
         
-        function updateItemQuantity(productId, change) {
-            const cartItems = Cart.getCartItems();
+        async function updateItemQuantity(productId, change) {
+            const cartItems = await Cart.getCartItemsAsync();
             const item = cartItems.find(i => i.id === productId);
             
             if (item) {

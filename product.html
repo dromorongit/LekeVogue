@@ -133,7 +133,6 @@
         let variantQuantities = {}; // { 'M': 5, 'L': 4, 'White': 3 }
         let availableStock = {}; // Store available stock per variant: { 'Black': { '38': 2, '39': 4 } }
         let currentProductId = null;
-        const API_BASE_URL = 'https://lekevogue-production.up.railway.app/api';
         
         // Initialize product page with API data
         async function initProduct() {
@@ -411,6 +410,36 @@
                 
                 if (newQty > available) {
                     Cart.showToast(`Maximum ${available} available for Size ${size}`, 'error');
+                    return;
+                }
+            } else if (variantKey.startsWith('size_')) {
+                // For size-only variants, check stock from availableStock
+                const size = variantKey.replace('size_', '');
+                // Sum up all stock for this size across all colors
+                let totalAvailable = 0;
+                for (const color in availableStock) {
+                    if (availableStock[color][size]) {
+                        totalAvailable += availableStock[color][size];
+                    }
+                }
+                
+                if (totalAvailable > 0 && newQty > totalAvailable) {
+                    Cart.showToast(`Maximum ${totalAvailable} available for Size ${size}`, 'error');
+                    return;
+                }
+            } else if (variantKey.startsWith('color_')) {
+                // For color-only variants, check stock from availableStock
+                const color = variantKey.replace('color_', '');
+                // Sum up all stock for this color across all sizes
+                let totalAvailable = 0;
+                if (availableStock[color]) {
+                    for (const size in availableStock[color]) {
+                        totalAvailable += availableStock[color][size];
+                    }
+                }
+                
+                if (totalAvailable > 0 && newQty > totalAvailable) {
+                    Cart.showToast(`Maximum ${totalAvailable} available for Color ${color}`, 'error');
                     return;
                 }
             }

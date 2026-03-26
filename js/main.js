@@ -18,15 +18,15 @@ const Cart = {
     addItem(productId, quantity = 1, size = null, color = null) {
         const cart = this.getCart();
         const existingItem = cart.find(item => 
-            item.id === productId || 
+            (item.id === productId || 
             item.id === String(productId) || 
-            item.id === parseInt(productId)
+            item.id === parseInt(productId)) &&
+            item.size === size &&
+            item.color === color
         );
         
         if (existingItem) {
             existingItem.quantity += quantity;
-            if (size) existingItem.size = size;
-            if (color) existingItem.color = color;
         } else {
             // Store as string to handle both MongoDB ObjectId and integer IDs
             cart.push({ 
@@ -109,8 +109,8 @@ const Cart = {
     },
     
     // Get cart total
-    getCartTotal() {
-        const items = this.getCartItems();
+    async getCartTotal() {
+        const items = await this.getCartItemsAsync();
         return items.reduce((sum, item) => sum + item.total, 0);
     },
     
@@ -401,7 +401,7 @@ const WhatsApp = {
     // Open WhatsApp with order
     sendOrder(customerName, phone, items, total) {
         const message = this.generateOrderMessage(customerName, phone, items, total);
-        const phoneNumber = '233500098510'; // Business phone number
+        const phoneNumber = '233539058490'; // Business phone number
         const url = `https://wa.me/${phoneNumber}?text=${message}`;
         window.open(url, '_blank');
     }

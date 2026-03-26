@@ -196,9 +196,6 @@
         // Store customer data
         let customerData = {};
         
-        // API Base URL
-        const API_BASE_URL = 'https://lekevogue-production.up.railway.app/api';
-        
         document.addEventListener('DOMContentLoaded', function() {
             renderOrderSummary();
             UI.init();
@@ -291,19 +288,19 @@
             return true;
         }
         
-        function processCheckout(event) {
+        async function processCheckout(event) {
             event.preventDefault();
             
             if (!validateForm()) return;
             
-            const cartItems = Cart.getCartItems();
+            const cartItems = await Cart.getCartItemsAsync();
             if (cartItems.length === 0) {
                 Cart.showToast('Your cart is empty', 'error');
                 return;
             }
             
             customerData = getCustomerData();
-            const total = Cart.getCartTotal();
+            const total = await Cart.getCartTotal();
             
             // Paystack payment
             // Note: Replace with your actual Paystack public key
@@ -449,7 +446,7 @@
                 
                 // Open WhatsApp
                 const encodedMessage = encodeURIComponent(message);
-                window.open(`https://wa.me/233500098510?text=${encodedMessage}`, '_blank');
+                window.open(`https://wa.me/233539058490?text=${encodedMessage}`, '_blank');
                 
                 // Clear cart
                 Cart.clearCart();
@@ -508,7 +505,7 @@
             
             // Open WhatsApp with order details
             const encodedMessage = encodeURIComponent(message);
-            window.open(`https://wa.me/233500098510?text=${encodedMessage}`, '_blank');
+            window.open(`https://wa.me/233539058490?text=${encodedMessage}`, '_blank');
             
             // Clear cart
             Cart.clearCart();
