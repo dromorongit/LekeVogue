@@ -357,8 +357,7 @@ const UI = {
 const Paystack = {
     // Initialize Paystack payment
     async initializePayment(email, amount, onSuccess, onClose) {
-        // Note: Replace with your actual Paystack public key
-        const publicKey = 'pk_test_your_public_key_here';
+        const publicKey = 'pk_live_3ae196fb6bb073ab666106d9f951acdd0b2a5454';
         
         const handler = PaystackPop.setup({
             key: publicKey,
@@ -369,8 +368,28 @@ const Paystack = {
             onClose: () => {
                 if (onClose) onClose();
             },
-            callback: (response) => {
-                if (onSuccess) onSuccess(response);
+            callback: async (response) => {
+                // Verify payment on backend
+                try {
+                    const verifyResponse = await fetch(`${API_BASE_URL}/payment/verify`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ reference: response.reference })
+                    });
+                    
+                    const verifyData = await verifyResponse.json();
+                    
+                    if (verifyData.success) {
+                        if (onSuccess) onSuccess(response);
+                    } else {
+                        Cart.showToast('Payment verification failed. Please contact support.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Payment verification error:', error);
+                    Cart.showToast('Error verifying payment. Please contact support.', 'error');
+                }
             }
         });
         
