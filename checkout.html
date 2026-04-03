@@ -339,6 +339,12 @@
             customerData = getCustomerData();
             const total = await Cart.getCartTotal();
             
+            // Validate total
+            if (!total || total <= 0 || isNaN(total)) {
+                Cart.showToast('Invalid cart total. Please refresh the page and try again.', 'error');
+                return;
+            }
+            
             // Generate unique reference
             paymentReference = 'LV' + Date.now();
             
@@ -381,7 +387,7 @@
                 onClose: function() {
                     Cart.showToast('Payment cancelled', 'error');
                 },
-                callback: async function(response) {
+                callback: function(response) {
                     // Store reference for completeOrder
                     paymentReference = response.reference;
                     
