@@ -108,6 +108,38 @@ app.get('/admin/*', (req, res) => {
   res.sendFile(__dirname + '/public/admin.html');
 });
 
+// Admin setup page
+app.get('/setup-admin', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Setup Admin - Leke Vogue</title>
+    </head>
+    <body style="font-family: Arial; padding: 50px; text-align: center;">
+      <h1>Leke Vogue Admin Setup</h1>
+      <button onclick="seedAdmin()" style="padding: 15px 30px; font-size: 18px; background: #6f42c1; color: white; border: none; cursor: pointer; border-radius: 5px;">Create Admin Account</button>
+      <p id="result"></p>
+      <script>
+      async function seedAdmin() {
+        try {
+          const response = await fetch('/api/auth/seed-admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+          });
+          const data = await response.json();
+          document.getElementById('result').textContent = data.message || (data.success ? 'Admin created: admin@lekevogue.shop / Admin@12345' : 'Error: ' + data.message);
+        } catch(e) {
+          document.getElementById('result').textContent = 'Error: ' + e.message;
+        }
+      }
+      </script>
+    </body>
+    </html>
+  `);
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
