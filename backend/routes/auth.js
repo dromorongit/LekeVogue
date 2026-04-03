@@ -385,7 +385,7 @@ router.post('/seed-admin', async (req, res) => {
     console.error('Seed admin error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error creating super admin'
+      message: 'Error creating super admin: ' + error.message
     });
   }
 });
