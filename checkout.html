@@ -339,6 +339,36 @@
             customerData = getCustomerData();
             const total = await Cart.getCartTotal();
             
+            // Generate unique reference
+            paymentReference = 'LV' + Date.now();
+            
+            // Initialize payment on backend first
+            try {
+                const initResponse = await fetch(`${API_BASE_URL}/payment/initialize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: customerData.email,
+                        amount: total,
+                        customerDetails: customerData
+                    })
+                });
+                
+                const initData = await initResponse.json();
+                
+                if (!initData.success) {
+                    Cart.showToast('Failed to initialize payment. Please try again.', 'error');
+                    return;
+                }
+                
+                paymentReference = initData.data.reference;
+            } catch (error) {
+                console.error('Payment init error:', error);
+                // Continue with client-side reference
+            }
+            
             // Paystack payment
             const paystackKey = 'pk_live_3ae196fb6bb073ab666106d9f951acdd0b2a5454';
             
@@ -347,33 +377,16 @@
                 email: customerData.email,
                 amount: total * 100, // Convert to kobo
                 currency: 'GHS',
-                ref: 'LV' + Date.now(),
+                ref: paymentReference,
                 onClose: function() {
                     Cart.showToast('Payment cancelled', 'error');
                 },
                 callback: async function(response) {
-                    // Payment successful - verify on backend
-                    try {
-                        const verifyResponse = await fetch(`${API_BASE_URL}/payment/verify`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ reference: response.reference })
-                        });
-                        
-                        const verifyData = await verifyResponse.json();
-                        
-                        if (verifyData.success) {
-                            // Payment verified successfully
-                            completeOrder();
-                        } else {
-                            Cart.showToast('Payment verification failed. Please contact support.', 'error');
-                        }
-                    } catch (error) {
-                        console.error('Payment verification error:', error);
-                        Cart.showToast('Error verifying payment. Please contact support.', 'error');
-                    }
+                    // Store reference for completeOrder
+                    paymentReference = response.reference;
+                    
+                    // Payment successful - call completeOrder to verify and create order
+                    completeOrder();
                 }
             });
             
@@ -458,73 +471,97 @@
         
         async function completeOrder() {
             const cartItems = Cart.getCart();
+            const total = await Cart.getCartTotal();
             
-            // Check stock availability (re-validate after payment success)
-            const stockOk = await checkStock(cartItems);
-            if (!stockOk) {
-                Cart.showToast('Some items are no longer available. Please refresh and try again.', 'error');
-                return;
-            }
+            // Show loading state
+            Cart.showToast('Processing your order...', 'loading');
             
-            // Deduct stock atomically (uses MongoDB transaction)
-            const stockResult = await deductStock(cartItems);
-            if (!stockResult || !stockResult.success) {
-                Cart.showToast('Failed to update stock. Please contact support.', 'error');
-                return;
-            }
-            
-            // Stock deducted successfully - log updated products for frontend sync
-            console.log('Updated products after purchase:', stockResult.updatedProducts);
-            
-            let total = 0;
-            
-            // Generate WhatsApp message for order confirmation
-            let message = `*Payment Confirmed - New Order*\n\n`;
-            message += `*Transaction Status: SUCCESS*\n\n`;
-            message += `*Customer Details*\n`;
-            message += `Name: ${customerData.fullName}\n`;
-            message += `Phone: ${customerData.phone}\n`;
-            if (customerData.email) message += `Email: ${customerData.email}\n`;
-            message += `\n*Delivery Address*\n`;
-            message += `Region: ${customerData.region}\n`;
-            message += `Address: ${customerData.address}\n`;
-            if (customerData.notes) message += `\n*Notes:* ${customerData.notes}\n`;
-            message += `\n*Ordered Items*\n`;
-            
-            // Get product details for message
-            const productPromises = cartItems.map(async (item) => {
-                const product = await getProductById(item.id);
-                return { ...item, product };
-            });
-            
-            const items = await Promise.all(productPromises);
-            
-            items.forEach(item => {
-                if (!item.product) return;
-                const itemTotal = item.product.price * item.quantity;
-                total += itemTotal;
+            try {
+                // Verify payment and create order on backend
+                const verifyResponse = await fetch(`${API_BASE_URL}/payment/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        reference: paymentReference,
+                        customerDetails: customerData,
+                        cartItems: cartItems.map(item => ({
+                            id: item.id,
+                            quantity: item.quantity,
+                            size: item.size || null,
+                            color: item.color || null
+                        })),
+                        subtotal: total,
+                        totalAmount: total
+                    })
+                });
                 
-                let itemDetails = `${item.product.name} x${item.quantity}`;
-                if (item.size) itemDetails += ` (Size: ${item.size})`;
-                if (item.color) itemDetails += ` (Color: ${item.color})`;
-                message += `- ${itemDetails} = GHS ${itemTotal.toFixed(2)}\n`;
-            });
-            
-            message += `\n*Total Amount: GHS ${total.toFixed(2)}*\n\n`;
-            message += `Order placed via Leke Vogue Website`;
-            
-            // Open WhatsApp with order details
-            const encodedMessage = encodeURIComponent(message);
-            window.open(`https://wa.me/233539058490?text=${encodedMessage}`, '_blank');
-            
-            // Clear cart
-            Cart.clearCart();
-            Cart.showToast('Payment successful! Order sent to WhatsApp.', 'success');
-            
-            // Redirect to home after delay
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 3000);
+                const verifyData = await verifyResponse.json();
+                
+                if (verifyData.success) {
+                    // Order created successfully!
+                    const order = verifyData.order;
+                    
+                    // Clear cart only after successful order creation
+                    Cart.clearCart();
+                    
+                    // Show success message with order number
+                    Cart.showToast(`Payment successful! Order ${order.orderNumber} created.`, 'success');
+                    
+                    // Show success modal/redirect
+                    showOrderSuccess(order);
+                } else {
+                    // Payment verified but order creation failed
+                    console.error('Order creation failed:', verifyData);
+                    Cart.showToast('Payment verified but order creation failed. Please contact support with reference: ' + paymentReference, 'error');
+                }
+            } catch (error) {
+                console.error('Order creation error:', error);
+                Cart.showToast('Error processing order. Please contact support.', 'error');
+            }
+        }
+        
+        let paymentReference = '';
+        
+        function showOrderSuccess(order) {
+            // Create success modal
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay active';
+            modal.innerHTML = `
+                <div class="modal" style="max-width: 500px; text-align: center;">
+                    <div class="modal-header">
+                        <h2 style="color: #28a745;"><i class="fas fa-check-circle"></i> Order Confirmed!</h2>
+                    </div>
+                    <div class="modal-body">
+                        <div style="padding: 20px;">
+                            <p style="font-size: 1.1rem; margin-bottom: 20px;">Thank you for your order!</p>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <p><strong>Order Number:</strong></p>
+                                <p style="font-size: 1.3rem; color: #6f42c1; font-weight: bold;">${order.orderNumber}</p>
+                            </div>
+                            <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <p><strong>Customer:</strong> ${order.customerFullName}</p>
+                                <p><strong>Phone:</strong> ${order.customerPhone}</p>
+                                <p><strong>Total:</strong> GHS ${order.totalAmount.toFixed(2)}</p>
+                            </div>
+                            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                                <p><strong style="color: #856404;">Important:</strong></p>
+                                <ul style="margin: 0; padding-left: 20px; color: #856404;">
+                                    <li>Orders can only be kept for a maximum of one week</li>
+                                    <li>Customers must pick up within 7 days</li>
+                                    <li>For customers outside Kumasi, a 10 GHS fee will be charged to the rider for sending the product to the station</li>
+                                </ul>
+                            </div>
+                            <p style="color: #666; font-size: 0.9rem;">Save your order number for pickup.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="justify-content: center;">
+                        <a href="index.html" class="btn btn-primary">Continue Shopping</a>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
         }
     </script>
 </body>

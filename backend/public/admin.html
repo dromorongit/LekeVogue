@@ -42,19 +42,8 @@
       <div class="sidebar-logo">
         <img src="/assets/lekevoguelogo.jpg" alt="Leke Vogue" style="height: 60px;">
       </div>
-      <nav class="sidebar-nav">
-        <a class="nav-item active" data-page="dashboard">
-          <i class="fas fa-th-large"></i>
-          <span>Dashboard</span>
-        </a>
-        <a class="nav-item" data-page="products">
-          <i class="fas fa-box"></i>
-          <span>Products</span>
-        </a>
-        <a class="nav-item" data-page="add-product">
-          <i class="fas fa-plus-circle"></i>
-          <span>Add Product</span>
-        </a>
+      <nav class="sidebar-nav" id="sidebarNav">
+        <!-- Navigation items will be populated by JavaScript based on role -->
       </nav>
       <div class="sidebar-footer">
         <a class="nav-item" id="logoutBtn">
@@ -82,27 +71,27 @@
 
         <div class="stats-grid">
           <div class="stat-card purple">
-            <h3>Total Products</h3>
-            <div class="value" id="totalProducts">0</div>
-          </div>
-          <div class="stat-card orange">
-            <h3>Featured Products</h3>
-            <div class="value" id="featuredProducts">0</div>
+            <h3>Total Orders</h3>
+            <div class="value" id="totalOrders">0</div>
           </div>
           <div class="stat-card success">
-            <h3>Low Stock Items</h3>
-            <div class="value" id="lowStockItems">0</div>
+            <h3>New Orders</h3>
+            <div class="value" id="newOrders">0</div>
           </div>
-          <div class="stat-card danger">
-            <h3>Out of Stock</h3>
-            <div class="value" id="outOfStock">0</div>
+          <div class="stat-card orange">
+            <h3>Processing</h3>
+            <div class="value" id="processingOrders">0</div>
+          </div>
+          <div class="stat-card info">
+            <h3>Revenue</h3>
+            <div class="value" id="totalRevenue">GHS 0</div>
           </div>
         </div>
 
         <div class="card">
           <div class="card-header">
-            <h2>Recent Products</h2>
-            <a class="btn btn-primary btn-sm" id="viewAllBtn">
+            <h2>Recent Orders</h2>
+            <a class="btn btn-primary btn-sm" id="viewAllOrdersBtn">
               <i class="fas fa-eye"></i> View All
             </a>
           </div>
@@ -111,15 +100,117 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Product</th>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th>Stock</th>
-                    <th>Featured</th>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="recentProductsTable">
-                  <!-- Products will be loaded here -->
+                <tbody id="recentOrdersTable">
+                  <!-- Orders will be loaded here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders List View -->
+      <div id="ordersView" style="display: none;">
+        <div class="page-header">
+          <h1>All Orders</h1>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Orders List</h2>
+            <div class="search-filter">
+              <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="orderSearchInput" placeholder="Search orders...">
+              </div>
+              <select id="orderStatusFilter" class="filter-select">
+                <option value="">All Status</option>
+                <option value="new">New</option>
+                <option value="processing">Processing</option>
+                <option value="ready_for_pickup">Ready for Pickup</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Total</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersTable">
+                  <!-- Orders will be loaded here -->
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination" id="ordersPagination">
+              <!-- Pagination will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Details View -->
+      <div id="orderDetailsView" style="display: none;">
+        <div class="page-header">
+          <h1>Order Details</h1>
+          <button class="btn btn-secondary" id="backToOrdersBtn">
+            <i class="fas fa-arrow-left"></i> Back to Orders
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div id="orderDetailsContent">
+              <!-- Order details will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users View (Super Admin Only) -->
+      <div id="usersView" style="display: none;">
+        <div class="page-header">
+          <h1>User Management</h1>
+          <button class="btn btn-primary" id="addUserBtn">
+            <i class="fas fa-plus"></i> Add User
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTable">
+                  <!-- Users will be loaded here -->
                 </tbody>
               </table>
             </div>
@@ -296,6 +387,22 @@
           </div>
         </div>
       </div>
+
+      <!-- Settings View (Super Admin Only) -->
+      <div id="settingsView" style="display: none;">
+        <div class="page-header">
+          <h1>Settings</h1>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>System Settings</h2>
+          </div>
+          <div class="card-body">
+            <p>Settings management coming soon...</p>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -410,6 +517,49 @@
               <i class="fas fa-save"></i> Update Product
             </button>
             <button type="button" class="btn btn-secondary" id="cancelEditBtn">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="addUserModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add New User</h2>
+        <button class="modal-close" id="closeUserModal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="userForm">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="userFullName" placeholder="Enter full name" required>
+          </div>
+          <div class="form-group">
+            <label>Email Address *</label>
+            <input type="email" id="userEmail" placeholder="Enter email address" required>
+          </div>
+          <div class="form-group">
+            <label>Password *</label>
+            <input type="password" id="userPassword" placeholder="Enter password" required>
+          </div>
+          <div class="form-group">
+            <label>Role *</label>
+            <select id="userRole" required>
+              <option value="order_manager">Order Manager</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+          </div>
+          <div style="margin-top: 24px; display: flex; gap: 12px;">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Create User
+            </button>
+            <button type="button" class="btn btn-secondary" id="cancelUserBtn">
               Cancel
             </button>
           </div>

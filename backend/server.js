@@ -10,12 +10,37 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const paymentRoutes = require('./routes/payment');
+const orderRoutes = require('./routes/orders');
 
 // Initialize express app
 const app = express();
 
 // Connect to MongoDB
 connectDB();
+
+// Import User model for fallback login
+const User = require('./models/User');
+
+// Check and seed super_admin if not exists
+const seedSuperAdmin = async () => {
+  try {
+    const existingAdmin = await User.findOne({ role: 'super_admin' });
+    if (!existingAdmin) {
+      const admin = new User({
+        fullName: 'Super Admin',
+        email: 'admin@lekevogue.shop',
+        password: 'Admin@12345',
+        role: 'super_admin',
+        isActive: true
+      });
+      await admin.save();
+      console.log('Super admin seeded: admin@lekevogue.shop / Admin@12345');
+    }
+  } catch (error) {
+    console.error('Error seeding super admin:', error);
+  }
+};
+seedSuperAdmin();
 
 // Trust proxy for Railway (needed for rate limiting)
 app.set('trust proxy', 1);
@@ -61,6 +86,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

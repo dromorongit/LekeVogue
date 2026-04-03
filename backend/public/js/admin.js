@@ -3,9 +3,13 @@ const API_BASE = '/api';
 
 // State management
 let authToken = localStorage.getItem('adminToken');
+let currentUser = null;
 let currentPage = 1;
 let currentCategory = '';
 let currentSearch = '';
+let orderCurrentPage = 1;
+let orderCurrentSearch = '';
+let orderCurrentStatus = '';
 
 // DOM Elements
 const loginPage = document.getElementById('loginPage');
@@ -23,7 +27,80 @@ document.addEventListener('DOMContentLoaded', () => {
   
   setupEventListeners();
   setupEditModal();
+  setupUserModal();
 });
+
+// Setup User Modal
+function setupUserModal() {
+  const modal = document.getElementById('addUserModal');
+  const closeBtn = document.getElementById('closeUserModal');
+  const cancelBtn = document.getElementById('cancelUserBtn');
+  const form = document.getElementById('userForm');
+
+  closeBtn.addEventListener('click', closeUserModal);
+  cancelBtn.addEventListener('click', closeUserModal);
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeUserModal();
+    }
+  });
+
+  form.addEventListener('submit', handleUserSubmit);
+}
+
+function openUserModal() {
+  const modal = document.getElementById('addUserModal');
+  modal.classList.add('active');
+}
+
+function closeUserModal() {
+  const modal = document.getElementById('addUserModal');
+  modal.classList.remove('active');
+  document.getElementById('userForm').reset();
+}
+
+async function handleUserSubmit(e) {
+  e.preventDefault();
+  
+  const fullName = document.getElementById('userFullName').value;
+  const email = document.getElementById('userEmail').value;
+  const password = document.getElementById('userPassword').value;
+  const role = document.getElementById('userRole').value;
+
+  if (!fullName || !email || !password) {
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+
+  try {
+    showLoading();
+    
+    const response = await fetch(`${API_BASE}/auth/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ fullName, email, password, role })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('User created successfully!', 'success');
+      closeUserModal();
+      loadUsers();
+    } else {
+      showToast(data.message || 'Failed to create user', 'error');
+    }
+  } catch (error) {
+    console.error('Create user error:', error);
+    showToast('Failed to create user', 'error');
+  } finally {
+    hideLoading();
+  }
+}
 
 // Edit Modal Functions
 function setupEditModal() {
@@ -116,7 +193,6 @@ async function handleEditProductSubmit(e) {
   formData.append('brand', brand);
   formData.append('short_description', shortDescription);
   formData.append('original_price', originalPrice);
-  // Only append sales_price if explicitly provided
   if (salesPrice !== null) {
     formData.append('sales_price', salesPrice);
   }
@@ -124,7 +200,6 @@ async function handleEditProductSubmit(e) {
   formData.append('sizes', document.getElementById('editSizes').value);
   formData.append('colors', document.getElementById('editColors').value);
   
-  // Get color-size data with stock per size
   const { colorSizes: editColorSizes, sizeStocks: editSizeStocks } = getColorSizeData('editColorSizeMatrix', 'edit-color-size-color', 'edit-color-size-sizes');
   formData.append('color_sizes', JSON.stringify(editColorSizes));
   formData.append('size_stock', JSON.stringify(editSizeStocks));
@@ -189,31 +264,26 @@ async function editProduct(id) {
       document.getElementById('editBrand').value = product.brand || '';
       document.getElementById('editShortDescription').value = product.short_description;
       document.getElementById('editOriginalPrice').value = product.original_price;
-      // Only set sales_price if it has a value (not null)
       document.getElementById('editSalesPrice').value = product.sales_price || '';
       document.getElementById('editCategory').value = product.category;
       document.getElementById('editSizes').value = product.sizes ? product.sizes.join(', ') : '';
       document.getElementById('editColors').value = product.colors ? product.colors.join(', ') : '';
       
-      // Populate color-size matrix if exists
       const editColorSizeContainer = document.getElementById('editColorSizeMatrix');
       editColorSizeContainer.innerHTML = '';
       if (product.color_sizes && Object.keys(product.color_sizes).length > 0) {
         for (const [color, sizes] of Object.entries(product.color_sizes)) {
-          // Get stock for this color/size combination
           const sizeStocks = product.size_stock && product.size_stock[color] ? product.size_stock[color] : {};
           addEditColorSizeRow(color, sizes.join(', '), sizeStocks);
         }
       }
       
-      // Calculate stock from color-size matrix
       setTimeout(() => updateStockFromColorSizeEdit(), 100);
       
       document.getElementById('editDimensions').value = product.dimensions_in_inches || '';
       document.getElementById('editStockQuantity').value = product.stock_quantity;
       document.getElementById('editFeaturedProduct').checked = product.featured_product;
       
-      // Show existing cover image
       if (product.cover_image) {
         document.getElementById('editCoverImagePreview').innerHTML = `
           <div class="image-preview-item">
@@ -222,7 +292,6 @@ async function editProduct(id) {
         `;
       }
       
-      // Show existing additional images
       if (product.additional_images && product.additional_images.length > 0) {
         document.getElementById('editAdditionalImagesPreview').innerHTML = product.additional_images.map(img => `
           <div class="image-preview-item">
@@ -270,28 +339,25 @@ function setupEventListeners() {
   // Logout
   document.getElementById('logoutBtn').addEventListener('click', handleLogout);
   
-  // Navigation
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const page = item.getAttribute('data-page');
-      if (page) {
-        showPage(page);
-      }
-    });
-  });
+  // Navigation - handled dynamically based on role in setupNavigation()
   
-  // Search and filter
+  // Search and filter - Products
   document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 500));
   document.getElementById('categoryFilter').addEventListener('change', handleCategoryFilter);
+  
+  // Search and filter - Orders
+  document.getElementById('orderSearchInput').addEventListener('input', debounce(handleOrderSearch, 500));
+  document.getElementById('orderStatusFilter').addEventListener('change', handleOrderStatusFilter);
   
   // Product form
   productForm.addEventListener('submit', handleProductSubmit);
   
-  // View All and Add New Product buttons
-  document.getElementById('viewAllBtn').addEventListener('click', () => showPage('products'));
-  document.getElementById('addNewProductBtn').addEventListener('click', () => showPage('add-product'));
-  document.getElementById('cancelBtn').addEventListener('click', () => showPage('products'));
+  // Buttons
+  document.getElementById('viewAllOrdersBtn')?.addEventListener('click', () => showPage('orders'));
+  document.getElementById('addNewProductBtn')?.addEventListener('click', () => showPage('add-product'));
+  document.getElementById('cancelBtn')?.addEventListener('click', () => showPage('products'));
+  document.getElementById('addUserBtn')?.addEventListener('click', openUserModal);
+  document.getElementById('backToOrdersBtn')?.addEventListener('click', () => showPage('orders'));
   
   // Image upload areas
   setupImageUpload();
@@ -323,8 +389,11 @@ async function handleLogin(e) {
     
     if (data.success) {
       authToken = data.token;
+      currentUser = data.user;
       localStorage.setItem('adminToken', authToken);
+      localStorage.setItem('adminUser', JSON.stringify(data.user));
       showToast('Login successful!', 'success');
+      setupNavigation(data.user.role);
       showDashboardPage();
       loadDashboard();
     } else {
@@ -340,7 +409,7 @@ async function handleLogin(e) {
 
 async function verifyToken() {
   try {
-    const response = await fetch(`${API_BASE}/auth/verify`, {
+    const response = await fetch(`${API_BASE}/auth/me`, {
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
@@ -349,6 +418,9 @@ async function verifyToken() {
     const data = await response.json();
     
     if (data.success) {
+      currentUser = data.user;
+      localStorage.setItem('adminUser', JSON.stringify(data.user));
+      setupNavigation(data.user.role);
       showDashboardPage();
       loadDashboard();
     } else {
@@ -362,9 +434,70 @@ async function verifyToken() {
 
 function handleLogout() {
   authToken = null;
+  currentUser = null;
   localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminUser');
   showLoginPage();
   showToast('Logged out successfully', 'success');
+}
+
+// Setup Navigation based on role
+function setupNavigation(role) {
+  const nav = document.getElementById('sidebarNav');
+  const isSuperAdmin = role === 'super_admin';
+  
+  let navHTML = '';
+  
+  // Dashboard - visible to all
+  navHTML += `
+    <a class="nav-item active" data-page="dashboard">
+      <i class="fas fa-th-large"></i>
+      <span>Dashboard</span>
+    </a>
+  `;
+  
+  // Orders - visible to all
+  navHTML += `
+    <a class="nav-item" data-page="orders">
+      <i class="fas fa-shopping-cart"></i>
+      <span>Orders</span>
+    </a>
+  `;
+  
+  // Products - super_admin only
+  if (isSuperAdmin) {
+    navHTML += `
+      <a class="nav-item" data-page="products">
+        <i class="fas fa-box"></i>
+        <span>Products</span>
+      </a>
+      <a class="nav-item" data-page="add-product">
+        <i class="fas fa-plus-circle"></i>
+        <span>Add Product</span>
+      </a>
+      <a class="nav-item" data-page="users">
+        <i class="fas fa-users"></i>
+        <span>Users</span>
+      </a>
+      <a class="nav-item" data-page="settings">
+        <i class="fas fa-cog"></i>
+        <span>Settings</span>
+      </a>
+    `;
+  }
+  
+  nav.innerHTML = navHTML;
+  
+  // Re-attach click listeners
+  nav.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = item.getAttribute('data-page');
+      if (page) {
+        showPage(page);
+      }
+    });
+  });
 }
 
 // Page Navigation
@@ -397,14 +530,25 @@ function showPage(page) {
   
   // Hide all views
   document.getElementById('dashboardView').style.display = 'none';
+  document.getElementById('ordersView').style.display = 'none';
+  document.getElementById('orderDetailsView').style.display = 'none';
   document.getElementById('productsView').style.display = 'none';
   document.getElementById('addProductView').style.display = 'none';
+  document.getElementById('usersView').style.display = 'none';
+  document.getElementById('settingsView').style.display = 'none';
   
   // Show requested view
   switch(page) {
     case 'dashboard':
       document.getElementById('dashboardView').style.display = 'block';
       loadDashboard();
+      break;
+    case 'orders':
+      document.getElementById('ordersView').style.display = 'block';
+      loadOrders();
+      break;
+    case 'order-details':
+      // Handled separately in viewOrder
       break;
     case 'products':
       document.getElementById('productsView').style.display = 'block';
@@ -414,13 +558,20 @@ function showPage(page) {
       document.getElementById('addProductView').style.display = 'block';
       resetProductForm();
       break;
+    case 'users':
+      document.getElementById('usersView').style.display = 'block';
+      loadUsers();
+      break;
+    case 'settings':
+      document.getElementById('settingsView').style.display = 'block';
+      break;
   }
 }
 
 // Dashboard
 async function loadDashboard() {
   try {
-    const response = await fetch(`${API_BASE}/products/stats`, {
+    const response = await fetch(`${API_BASE}/orders/stats`, {
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
@@ -429,60 +580,451 @@ async function loadDashboard() {
     const data = await response.json();
     
     if (data.success) {
-      document.getElementById('totalProducts').textContent = data.data.totalProducts;
-      document.getElementById('featuredProducts').textContent = data.data.featuredProducts;
-      document.getElementById('lowStockItems').textContent = data.data.lowStockItems;
-      document.getElementById('outOfStock').textContent = data.data.outOfStock;
+      document.getElementById('totalOrders').textContent = data.data.totalOrders;
+      document.getElementById('newOrders').textContent = data.data.newOrders;
+      document.getElementById('processingOrders').textContent = data.data.processingOrders;
+      document.getElementById('totalRevenue').textContent = `GHS ${data.data.totalRevenue.toFixed(2)}`;
     }
     
-    // Load recent products
-    const productsResponse = await fetch(`${API_BASE}/products?limit=5&sort=desc`);
-    const productsData = await productsResponse.json();
+    // Load recent orders
+    const ordersResponse = await fetch(`${API_BASE}/orders?limit=5&sort=desc`);
+    const ordersData = await ordersResponse.json();
     
-    if (productsData.success) {
-      renderRecentProducts(productsData.data);
+    if (ordersData.success) {
+      renderRecentOrders(ordersData.orders);
     }
   } catch (error) {
     console.error('Load dashboard error:', error);
   }
 }
 
-function renderRecentProducts(products) {
-  const tbody = document.getElementById('recentProductsTable');
-  tbody.innerHTML = products.map(product => {
-    // Calculate display price: use sales_price if it's less than original_price
-    const displayPrice = (product.sales_price && product.sales_price < product.original_price) 
-      ? product.sales_price 
-      : product.original_price;
-    const showOriginal = product.sales_price && product.sales_price < product.original_price;
-    
-    return `
-    <tr>
-      <td>
-        <div class="product-info">
-          <img src="${product.cover_image}" alt="${product.product_name}" class="product-thumb" onerror="this.src='https://via.placeholder.com/50'">
-          <div>
-            <div class="product-name">${product.product_name}</div>
-            <div class="product-brand">${product.brand}</div>
+function renderRecentOrders(orders) {
+  const tbody = document.getElementById('recentOrdersTable');
+  
+  if (orders.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6">
+          <div class="empty-state">
+            <i class="fas fa-shopping-cart"></i>
+            <h3>No Orders Yet</h3>
+            <p>Orders will appear here after successful payments</p>
           </div>
-        </div>
-      </td>
-      <td>${product.category}</td>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tbody.innerHTML = orders.map(order => `
+    <tr>
+      <td><strong>${order.orderNumber}</strong></td>
+      <td>${order.customerFullName}</td>
+      <td>GHS ${order.totalAmount.toFixed(2)}</td>
+      <td><span class="status-badge ${getOrderStatusClass(order.orderStatus)}">${formatOrderStatus(order.orderStatus)}</span></td>
+      <td>${formatDate(order.createdAt)}</td>
       <td>
-        <span class="price">GH₵${displayPrice.toFixed(2)}</span>
-        ${showOriginal ? `<br><span class="original-price">GH₵${product.original_price.toFixed(2)}</span>` : ''}
-      </td>
-      <td>
-        <span class="stock-badge ${getStockClass(product.stock_quantity)}">${product.stock_quantity}</span>
-      </td>
-      <td>
-        ${product.featured_product ? '<span class="featured-badge">Featured</span>' : '-'}
+        <button class="edit-btn" onclick="viewOrder('${order._id}')">View</button>
       </td>
     </tr>
-  `}).join('');
+  `).join('');
 }
 
-// Products
+// Orders
+async function loadOrders(page = 1) {
+  orderCurrentPage = page;
+  
+  let url = `${API_BASE}/orders?page=${page}&limit=10`;
+  
+  if (orderCurrentStatus) {
+    url += `&status=${orderCurrentStatus}`;
+  }
+  
+  if (orderCurrentSearch) {
+    url += `&search=${encodeURIComponent(orderCurrentSearch)}`;
+  }
+  
+  try {
+    showLoading();
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      renderOrdersTable(data.orders);
+      renderOrdersPagination(data.page, data.pages);
+    } else {
+      showToast('Failed to load orders', 'error');
+    }
+  } catch (error) {
+    console.error('Load orders error:', error);
+    showToast('Failed to load orders', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderOrdersTable(orders) {
+  const tbody = document.getElementById('ordersTable');
+  
+  if (orders.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8">
+          <div class="empty-state">
+            <i class="fas fa-shopping-cart"></i>
+            <h3>No Orders Found</h3>
+            <p>No orders match your search criteria</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tbody.innerHTML = orders.map(order => `
+    <tr>
+      <td><strong>${order.orderNumber}</strong></td>
+      <td>${order.customerFullName}</td>
+      <td>${order.customerPhone || '-'}</td>
+      <td>GHS ${order.totalAmount.toFixed(2)}</td>
+      <td><span class="status-badge ${order.paymentStatus === 'paid' ? 'success' : 'warning'}">${order.paymentStatus}</span></td>
+      <td><span class="status-badge ${getOrderStatusClass(order.orderStatus)}">${formatOrderStatus(order.orderStatus)}</span></td>
+      <td>${formatDate(order.createdAt)}</td>
+      <td>
+        <button class="edit-btn" onclick="viewOrder('${order._id}')">View</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderOrdersPagination(page, pages) {
+  const pagination = document.getElementById('ordersPagination');
+  
+  if (pages <= 1) {
+    pagination.innerHTML = '';
+    return;
+  }
+  
+  let html = `
+    <button class="page-btn" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>
+      <i class="fas fa-chevron-left"></i>
+    </button>
+  `;
+  
+  for (let i = 1; i <= pages; i++) {
+    if (i === 1 || i === pages || (i >= page - 1 && i <= page + 1)) {
+      html += `<button class="page-btn" data-page="${i}" ${i === page ? 'style="background: var(--primary-purple);"' : ''}>${i}</button>`;
+    } else if (i === page - 2 || i === page + 2) {
+      html += `<span>...</span>`;
+    }
+  }
+  
+  html += `
+    <button class="page-btn" data-page="${page + 1}" ${page === pages ? 'disabled' : ''}>
+      <i class="fas fa-chevron-right"></i>
+    </button>
+  `;
+  
+  pagination.innerHTML = html;
+  
+  pagination.querySelectorAll('.page-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!btn.disabled) {
+        loadOrders(parseInt(btn.dataset.page));
+      }
+    });
+  });
+}
+
+async function viewOrder(orderId) {
+  try {
+    showLoading();
+    
+    const response = await fetch(`${API_BASE}/orders/${orderId}`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      renderOrderDetails(data.order);
+      showPage('order-details');
+    } else {
+      showToast('Failed to load order', 'error');
+    }
+  } catch (error) {
+    console.error('View order error:', error);
+    showToast('Failed to load order', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderOrderDetails(order) {
+  const content = document.getElementById('orderDetailsContent');
+  
+  content.innerHTML = `
+    <div class="order-details-grid">
+      <div class="order-info-section">
+        <h3>Order Information</h3>
+        <div class="detail-row">
+          <span class="label">Order Number:</span>
+          <span class="value">${order.orderNumber}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Date:</span>
+          <span class="value">${formatDate(order.createdAt)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Payment Status:</span>
+          <span class="value"><span class="status-badge ${order.paymentStatus === 'paid' ? 'success' : 'warning'}">${order.paymentStatus}</span></span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Payment Reference:</span>
+          <span class="value">${order.paymentReference || '-'}</span>
+        </div>
+      </div>
+      
+      <div class="customer-info-section">
+        <h3>Customer Information</h3>
+        <div class="detail-row">
+          <span class="label">Name:</span>
+          <span class="value">${order.customerFullName}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Phone:</span>
+          <span class="value">${order.customerPhone}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Email:</span>
+          <span class="value">${order.customerEmail || '-'}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Delivery Address:</span>
+          <span class="value">${order.deliveryAddress || '-'}</span>
+        </div>
+      </div>
+      
+      <div class="order-items-section">
+        <h3>Ordered Items</h3>
+        ${order.orderItems.map(item => `
+          <div class="order-item">
+            <div class="item-info">
+              <strong>${item.productName}</strong>
+              <span>${item.selectedColor || ''} ${item.selectedSize ? 'Size ' + item.selectedSize : ''}</span>
+              <span>Qty: ${item.quantity} x GHS ${item.unitPrice.toFixed(2)}</span>
+            </div>
+            <div class="item-total">GHS ${item.lineTotal.toFixed(2)}</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div class="order-total-section">
+        <div class="detail-row total">
+          <span class="label">Total Amount:</span>
+          <span class="value">GHS ${order.totalAmount.toFixed(2)}</span>
+        </div>
+      </div>
+      
+      <div class="order-status-section">
+        <h3>Update Order Status</h3>
+        <div class="status-update-form">
+          <select id="orderStatusSelect" class="filter-select">
+            <option value="new" ${order.orderStatus === 'new' ? 'selected' : ''}>New</option>
+            <option value="processing" ${order.orderStatus === 'processing' ? 'selected' : ''}>Processing</option>
+            <option value="ready_for_pickup" ${order.orderStatus === 'ready_for_pickup' ? 'selected' : ''}>Ready for Pickup</option>
+            <option value="completed" ${order.orderStatus === 'completed' ? 'selected' : ''}>Completed</option>
+            <option value="cancelled" ${order.orderStatus === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+          </select>
+          <button class="btn btn-primary" onclick="updateOrderStatus('${order._id}')">
+            <i class="fas fa-save"></i> Update Status
+          </button>
+        </div>
+      </div>
+      
+      <div class="order-notes-section">
+        <h3>Internal Notes</h3>
+        <textarea id="orderNoteText" rows="4" placeholder="Add internal note...">${order.internalNote || ''}</textarea>
+        <button class="btn btn-primary" onclick="addOrderNote('${order._id}')" style="margin-top: 10px;">
+          <i class="fas fa-save"></i> Save Note
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+async function updateOrderStatus(orderId) {
+  const status = document.getElementById('orderStatusSelect').value;
+  
+  try {
+    showLoading();
+    
+    const response = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ orderStatus: status })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('Order status updated!', 'success');
+      viewOrder(orderId);
+    } else {
+      showToast(data.message || 'Failed to update status', 'error');
+    }
+  } catch (error) {
+    console.error('Update status error:', error);
+    showToast('Failed to update status', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function addOrderNote(orderId) {
+  const note = document.getElementById('orderNoteText').value;
+  
+  if (!note) {
+    showToast('Please enter a note', 'error');
+    return;
+  }
+  
+  try {
+    showLoading();
+    
+    const response = await fetch(`${API_BASE}/orders/${orderId}/note`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ internalNote: note })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('Note saved!', 'success');
+      viewOrder(orderId);
+    } else {
+      showToast(data.message || 'Failed to save note', 'error');
+    }
+  } catch (error) {
+    console.error('Save note error:', error);
+    showToast('Failed to save note', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function handleOrderSearch(e) {
+  orderCurrentSearch = e.target.value;
+  loadOrders(1);
+}
+
+function handleOrderStatusFilter(e) {
+  orderCurrentStatus = e.target.value;
+  loadOrders(1);
+}
+
+// Users Management (Super Admin)
+async function loadUsers() {
+  try {
+    showLoading();
+    
+    const response = await fetch(`${API_BASE}/auth/users`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      renderUsersTable(data.users);
+    } else {
+      showToast('Failed to load users', 'error');
+    }
+  } catch (error) {
+    console.error('Load users error:', error);
+    showToast('Failed to load users', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderUsersTable(users) {
+  const tbody = document.getElementById('usersTable');
+  
+  if (users.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6">
+          <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <h3>No Users</h3>
+            <p>Add users to manage the system</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tbody.innerHTML = users.map(user => `
+    <tr>
+      <td>${user.fullName}</td>
+      <td>${user.email}</td>
+      <td><span class="status-badge ${user.role === 'super_admin' ? 'purple' : 'info'}">${user.role}</span></td>
+      <td><span class="status-badge ${user.isActive ? 'success' : 'danger'}">${user.isActive ? 'Active' : 'Inactive'}</span></td>
+      <td>${formatDate(user.createdAt)}</td>
+      <td>
+        <button class="edit-btn" onclick="toggleUserStatus('${user._id}')">${user.isActive ? 'Deactivate' : 'Activate'}</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function toggleUserStatus(userId) {
+  if (!confirm('Are you sure you want to change this user\'s status?')) {
+    return;
+  }
+  
+  try {
+    showLoading();
+    
+    const response = await fetch(`${API_BASE}/auth/users/${userId}/toggle-status`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('User status updated!', 'success');
+      loadUsers();
+    } else {
+      showToast(data.message || 'Failed to update user', 'error');
+    }
+  } catch (error) {
+    console.error('Toggle user status error:', error);
+    showToast('Failed to update user status', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// Products (from original code)
 async function loadProducts(page = 1) {
   currentPage = page;
   
@@ -535,7 +1077,6 @@ function renderProductsTable(products) {
   }
   
   tbody.innerHTML = products.map(product => {
-    // Calculate display price: use sales_price if it's less than original_price
     const displayPrice = (product.sales_price && product.sales_price < product.original_price) 
       ? product.sales_price 
       : product.original_price;
@@ -565,18 +1106,13 @@ function renderProductsTable(products) {
       </td>
       <td>
         <div class="actions">
-          <button class="edit-btn" data-id="${product._id}" title="Edit">
-            Edit
-          </button>
-          <button class="delete-btn" data-id="${product._id}" title="Delete">
-            Delete
-          </button>
+          <button class="edit-btn" data-id="${product._id}">Edit</button>
+          <button class="delete-btn" data-id="${product._id}">Delete</button>
         </div>
       </td>
     </tr>
   `}).join('');
 
-  // Add event listeners to buttons
   tbody.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', () => editProduct(btn.dataset.id));
   });
@@ -615,7 +1151,6 @@ function renderPagination(page, pages) {
   
   pagination.innerHTML = html;
   
-  // Add event listeners to pagination buttons
   pagination.querySelectorAll('.page-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (!btn.disabled) {
@@ -641,7 +1176,7 @@ function getStockClass(quantity) {
   return 'in-stock';
 }
 
-// Product Form
+// Product Form (from original code)
 function resetProductForm() {
   document.getElementById('productId').value = '';
   document.getElementById('formTitle').textContent = 'Add New Product';
@@ -655,21 +1190,17 @@ let coverImageFile = null;
 let additionalImagesFiles = [];
 
 function setupImageUpload() {
-  // Cover image
   const coverUpload = document.getElementById('coverImageUpload');
   const coverInput = document.getElementById('coverImage');
   
   coverUpload.addEventListener('click', () => coverInput.click());
   coverInput.addEventListener('change', (e) => {
-    console.log('Cover image file selected:', e.target.files[0]);
     if (e.target.files[0]) {
       coverImageFile = e.target.files[0];
-      console.log('coverImageFile set to:', coverImageFile);
       previewImage(coverImageFile, 'coverImagePreview');
     }
   });
   
-  // Additional images
   const additionalUpload = document.getElementById('additionalImagesUpload');
   const additionalInput = document.getElementById('additionalImages');
   
@@ -732,10 +1263,6 @@ function removeAdditionalImage(index) {
 async function handleProductSubmit(e) {
   e.preventDefault();
   
-  const productId = document.getElementById('productId').value;
-  const isEdit = !!productId;
-  
-  // Validate - Brand and Sales Price are now optional
   const productName = document.getElementById('productName').value;
   const brand = document.getElementById('brand').value;
   const shortDescription = document.getElementById('shortDescription').value;
@@ -745,28 +1272,21 @@ async function handleProductSubmit(e) {
   const category = document.getElementById('category').value;
   const stockQuantity = parseInt(document.getElementById('stockQuantity').value);
   
-  // Validate original price if provided
   if (!originalPrice && originalPrice !== 0) {
     showToast('Original price is required', 'error');
     return;
   }
   
-  // Validate sales price if provided (can't exceed original)
   if (salesPrice !== null && salesPrice > originalPrice) {
     showToast('Sales price cannot exceed original price', 'error');
     return;
   }
-  
-  // Cover image is now optional - products can be saved without cover image
-  // Only validate if explicitly needed
-  /* Cover image is optional now */
   
   const formData = new FormData();
   formData.append('product_name', productName);
   formData.append('brand', brand);
   formData.append('short_description', shortDescription);
   formData.append('original_price', originalPrice);
-  // Only append sales_price if explicitly provided
   if (salesPrice !== null) {
     formData.append('sales_price', salesPrice);
   }
@@ -774,7 +1294,6 @@ async function handleProductSubmit(e) {
   formData.append('sizes', document.getElementById('sizes').value);
   formData.append('colors', document.getElementById('colors').value);
   
-  // Get color-size data with stock per size
   const { colorSizes, sizeStocks } = getColorSizeData('colorSizeMatrix', 'color-size-color', 'color-size-sizes');
   formData.append('color_sizes', JSON.stringify(colorSizes));
   formData.append('size_stock', JSON.stringify(sizeStocks));
@@ -784,7 +1303,6 @@ async function handleProductSubmit(e) {
   formData.append('featured_product', document.getElementById('featuredProduct').checked);
   
   if (coverImageFile) {
-    console.log('Appending cover image to FormData:', coverImageFile);
     formData.append('cover_image', coverImageFile);
   }
   
@@ -795,12 +1313,8 @@ async function handleProductSubmit(e) {
   try {
     showLoading();
     
-    const url = isEdit 
-      ? `${API_BASE}/products/${productId}`
-      : `${API_BASE}/products`;
-    
-    const response = await fetch(url, {
-      method: isEdit ? 'PUT' : 'POST',
+    const response = await fetch(`${API_BASE}/products`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${authToken}`
       },
@@ -810,7 +1324,7 @@ async function handleProductSubmit(e) {
     const data = await response.json();
     
     if (data.success) {
-      showToast(isEdit ? 'Product updated successfully!' : 'Product created successfully!', 'success');
+      showToast('Product created successfully!', 'success');
       showPage('products');
     } else {
       showToast(data.message || 'Failed to save product', 'error');
@@ -823,7 +1337,6 @@ async function handleProductSubmit(e) {
   }
 }
 
-// Delete Product
 async function deleteProduct(id) {
   if (!confirm('Are you sure you want to delete this product?')) {
     return;
@@ -893,7 +1406,40 @@ function debounce(func, wait) {
   };
 }
 
-// Color-Size Matrix Functions
+// Helper Functions
+function formatDate(dateString) {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-GH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+function getOrderStatusClass(status) {
+  const classes = {
+    'new': 'info',
+    'processing': 'warning',
+    'ready_for_pickup': 'success',
+    'completed': 'success',
+    'cancelled': 'danger'
+  };
+  return classes[status] || 'info';
+}
+
+function formatOrderStatus(status) {
+  const labels = {
+    'new': 'New',
+    'processing': 'Processing',
+    'ready_for_pickup': 'Ready for Pickup',
+    'completed': 'Completed',
+    'cancelled': 'Cancelled'
+  };
+  return labels[status] || status;
+}
+
+// Color-Size Matrix Functions (from original code)
 function addColorSizeRow(color = '', sizes = '', sizeStocks = {}) {
   const container = document.getElementById('colorSizeMatrix');
   const row = document.createElement('div');
@@ -913,13 +1459,11 @@ function addColorSizeRow(color = '', sizes = '', sizeStocks = {}) {
   `;
   container.appendChild(row);
   
-  // Add stock input fields for each size
   const sizesInput = row.querySelector('.color-size-sizes');
   const stockInputsContainer = row.querySelector('.size-stock-inputs');
   
   const updateSizeStockInputs = () => {
     const sizeList = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
-    // Clear existing stock inputs
     const existingStockInputs = stockInputsContainer.querySelectorAll('.size-stock-item');
     existingStockInputs.forEach(el => el.remove());
     
@@ -938,7 +1482,6 @@ function addColorSizeRow(color = '', sizes = '', sizeStocks = {}) {
   
   sizesInput.addEventListener('input', updateSizeStockInputs);
   
-  // Initial setup if sizes are provided
   if (sizes) {
     updateSizeStockInputs();
     updateStockFromColorSize();
@@ -964,13 +1507,11 @@ function addEditColorSizeRow(color = '', sizes = '', sizeStocks = {}) {
   `;
   container.appendChild(row);
   
-  // Add stock input fields for each size
   const sizesInput = row.querySelector('.edit-color-size-sizes');
   const stockInputsContainer = row.querySelector('.edit-size-stock-inputs');
   
   const updateSizeStockInputs = () => {
     const sizeList = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
-    // Clear existing stock inputs
     const existingStockInputs = stockInputsContainer.querySelectorAll('.edit-size-stock-item');
     existingStockInputs.forEach(el => el.remove());
     
@@ -989,14 +1530,12 @@ function addEditColorSizeRow(color = '', sizes = '', sizeStocks = {}) {
   
   sizesInput.addEventListener('input', updateSizeStockInputs);
   
-  // Initial setup if sizes are provided
   if (sizes) {
     updateSizeStockInputs();
     updateStockFromColorSizeEdit();
   }
 }
 
-// Helper to collect color-size data from form
 function getColorSizeData(containerId, colorClass, sizesClass) {
   const container = document.getElementById(containerId);
   const isEdit = containerId.includes('edit');
@@ -1018,7 +1557,6 @@ function getColorSizeData(containerId, colorClass, sizesClass) {
       if (sizes.length > 0) {
         colorSizes[color] = sizes;
         
-        // Collect stock per size
         sizeStocks[color] = {};
         const stockInputs = row.querySelectorAll(stockClassSelector);
         stockInputs.forEach(stockInput => {
@@ -1033,7 +1571,6 @@ function getColorSizeData(containerId, colorClass, sizesClass) {
   return { colorSizes, sizeStocks };
 }
 
-// Calculate and update stock quantity from Color-Size Matrix (for Add Product form)
 function updateStockFromColorSize() {
   const container = document.getElementById('colorSizeMatrix');
   const rows = container.querySelectorAll('.color-size-row');
@@ -1044,28 +1581,21 @@ function updateStockFromColorSize() {
     const stockInputs = row.querySelectorAll('.size-stock-value');
     
     if (sizesInput && sizesInput.value.trim()) {
-      // If stock inputs exist, sum them up
       if (stockInputs.length > 0) {
         stockInputs.forEach(stockInput => {
           const stockValue = parseInt(stockInput.value) || 0;
           totalStock += stockValue;
         });
-      } else {
-        // Fallback: count sizes
-        const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
-        totalStock += sizes.length;
       }
     }
   });
   
-  // Update the stock quantity input
   const stockInput = document.getElementById('stockQuantity');
   if (totalStock > 0) {
     stockInput.value = totalStock;
   }
 }
 
-// Calculate and update stock quantity from Color-Size Matrix (for Edit Product form)
 function updateStockFromColorSizeEdit() {
   const container = document.getElementById('editColorSizeMatrix');
   const rows = container.querySelectorAll('.edit-color-size-row');
@@ -1076,21 +1606,15 @@ function updateStockFromColorSizeEdit() {
     const stockInputs = row.querySelectorAll('.edit-size-stock-value');
     
     if (sizesInput && sizesInput.value.trim()) {
-      // If stock inputs exist, sum them up
       if (stockInputs.length > 0) {
         stockInputs.forEach(stockInput => {
           const stockValue = parseInt(stockInput.value) || 0;
           totalStock += stockValue;
         });
-      } else {
-        // Fallback: count sizes
-        const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s);
-        totalStock += sizes.length;
       }
     }
   });
   
-  // Update the stock quantity input
   const stockInput = document.getElementById('editStockQuantity');
   if (totalStock > 0) {
     stockInput.value = totalStock;
