@@ -373,17 +373,39 @@
                 const response = await fetch(`${API_BASE_URL}/products/${productId}/stock`);
                 const data = await response.json();
                 
+                console.log('Stock data:', data);
+                
                 if (data.success && data.data.sizeStock) {
+                    // New format: size_stock object with actual stock counts
                     availableStock = data.data.sizeStock;
                 } else if (data.success && data.data.colorSizes) {
-                    // Fallback: calculate stock from color_sizes array
+                    // Legacy format: color_sizes array - need to calculate stock
+                    // For each color, count total items = stock for that color
                     const colorSizes = data.data.colorSizes;
+                    availableStock = {};
+                    for (const [color, sizes] of Object.entries(colorSizes)) {
+                        availableStock[color] = {};
+                        // Count each size occurrence
+                        sizes.forEach(size => {
+                            availableStock[color][size] = (availableStock[color][size] || 0) + 1;
+                        });
+                    }
+                    console.log('Calculated availableStock from color_sizes:', availableStock);
+                }
+                
+                // Also check if product has size_stock directly in the product data
+                const product = await getProductById(productId);
+                if (product && product.color_sizes && Object.keys(product.color_sizes).length > 0) {
+                    // Calculate from color_sizes array in product data
+                    const colorSizes = product.color_sizes;
+                    availableStock = {};
                     for (const [color, sizes] of Object.entries(colorSizes)) {
                         availableStock[color] = {};
                         sizes.forEach(size => {
                             availableStock[color][size] = (availableStock[color][size] || 0) + 1;
                         });
                     }
+                    console.log('Available stock from product.color_sizes:', availableStock);
                 }
             } catch (error) {
                 console.error('Error fetching stock:', error);
@@ -403,52 +425,16 @@
             const currentQty = variantQuantities[variantKey] || 0;
             let newQty = currentQty + change;
             
-            // Check max allowed quantity based on available stock
-            if (variantKey.startsWith('colorsize_')) {
-                const parts = variantKey.split('_');
-                const color = parts[1];
-                const size = parts.slice(2).join('_');
-                const available = getAvailableStock(color, size);
-                
-                // Only enforce limit if stock data is available (available > 0)
-                if (available > 0 && newQty > available) {
-                    Cart.showToast(`Maximum ${available} available for Size ${size}`, 'error');
-                    return;
-                }
-            } else if (variantKey.startsWith('size_')) {
-                // For size-only variants, check stock from availableStock
-                const size = variantKey.replace('size_', '');
-                // Sum up all stock for this size across all colors
-                let totalAvailable = 0;
-                for (const color in availableStock) {
-                    if (availableStock[color][size]) {
-                        totalAvailable += availableStock[color][size];
-                    }
-                }
-                
-                // Only enforce limit if stock data is available (totalAvailable > 0)
-                if (totalAvailable > 0 && newQty > totalAvailable) {
-                    Cart.showToast(`Maximum ${totalAvailable} available for Size ${size}`, 'error');
-                    return;
-                }
-            } else if (variantKey.startsWith('color_')) {
-                // For color-only variants, check stock from availableStock
-                const color = variantKey.replace('color_', '');
-                // Sum up all stock for this color across all sizes
-                let totalAvailable = 0;
-                if (availableStock[color]) {
-                    for (const size in availableStock[color]) {
-                        totalAvailable += availableStock[color][size];
-                    }
-                }
-                
-                // Only enforce limit if stock data is available (totalAvailable > 0)
-                if (totalAvailable > 0 && newQty > totalAvailable) {
-                    Cart.showToast(`Maximum ${totalAvailable} available for Color ${color}`, 'error');
-                    return;
-                }
+            // Get current product stock info
+            const maxStock = getMaxStockForVariant(variantKey);
+            
+            // Enforce stock limits
+            if (maxStock > 0 && newQty > maxStock) {
+                Cart.showToast(`Maximum ${maxStock} available for this variant`, 'error');
+                return;
             }
             
+            // Allow increment beyond stock (will be caught at add-to-cart time)
             newQty = Math.max(0, newQty);
             variantQuantities[variantKey] = newQty;
             
@@ -460,6 +446,53 @@
             
             // Update total
             updateTotalSelectedQty();
+        }
+        
+        // Get maximum stock available for a variant
+        function getMaxStockForVariant(variantKey) {
+            if (variantKey.startsWith('colorsize_')) {
+                // colorsize_Black_37
+                const parts = variantKey.split('_');
+                const color = parts[1];
+                const size = parts.slice(2).join('_');
+                return getAvailableStock(color, size);
+            } else if (variantKey.startsWith('size_')) {
+                // size_37 - get total across all colors or use overall stock
+                const size = variantKey.replace('size_', '');
+                let totalAvailable = 0;
+                
+                // First, check if we have color-specific stock
+                if (availableStock && Object.keys(availableStock).length > 0) {
+                    for (const color in availableStock) {
+                        if (availableStock[color] && availableStock[color][size]) {
+                            totalAvailable += availableStock[color][size];
+                        }
+                    }
+                }
+                
+                // If no color-specific stock, use overall product stock
+                if (totalAvailable === 0) {
+                    // Need to get product stock - we can access it from global or fetch
+                    // For now, return a high number but will be validated at add to cart
+                    return 0; // Will use backend validation as fallback
+                }
+                
+                return totalAvailable;
+            } else if (variantKey.startsWith('color_')) {
+                // color_Black
+                const color = variantKey.replace('color_', '');
+                let totalAvailable = 0;
+                
+                if (availableStock && availableStock[color]) {
+                    for (const size in availableStock[color]) {
+                        totalAvailable += availableStock[color][size];
+                    }
+                }
+                
+                return totalAvailable;
+            }
+            
+            return 0; // No stock limit if we can't determine
         }
         
         function updateTotalSelectedQty() {
