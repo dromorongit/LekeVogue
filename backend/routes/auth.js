@@ -340,21 +340,10 @@ router.delete('/users/:id', protect, authorize('super_admin'), async (req, res) 
 // @access  Public (limited)
 router.post('/seed-admin', async (req, res) => {
   try {
-    const { force, fullName, email, password } = req.body;
+    const { fullName, email, password } = req.body;
     
-    // Check if admin already exists
-    const existingAdmin = await User.findOne({ role: 'super_admin' });
-    if (existingAdmin && !force) {
-      return res.status(400).json({
-        success: false,
-        message: 'Super admin already exists. Use force=true to recreate.'
-      });
-    }
-    
-    // Delete existing admin if force is used
-    if (existingAdmin && force) {
-      await User.deleteOne({ role: 'super_admin' });
-    }
+    // Always delete existing admin first (to avoid conflict)
+    await User.deleteOne({ role: 'super_admin' });
 
     const adminFullName = fullName || 'Super Admin';
     const adminEmail = email || 'admin@lekevogue.shop';
