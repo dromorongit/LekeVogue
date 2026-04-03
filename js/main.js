@@ -56,6 +56,27 @@ const Cart = {
         }
     },
     
+    // Remove item with variants (size/color specific)
+    removeItemWithVariants(productId, size = null, color = null) {
+        let cart = this.getCart();
+        // Match by ID and variants
+        cart = cart.filter(item => {
+            const idMatch = item.id === productId || item.id === String(productId) || item.id === parseInt(productId);
+            const sizeMatch = item.size === size;
+            const colorMatch = item.color === color;
+            // Remove if ID matches AND size matches AND color matches
+            return !(idMatch && sizeMatch && colorMatch);
+        });
+        this.saveCart(cart);
+        this.showToast('Item removed from cart', 'success');
+        
+        // Reload page if on cart or checkout page
+        if (window.location.pathname.includes('cart.html') || 
+            window.location.pathname.includes('checkout.html')) {
+            setTimeout(() => window.location.reload(), 500);
+        }
+    },
+    
     // Update item quantity
     updateQuantity(productId, quantity) {
         const cart = this.getCart();

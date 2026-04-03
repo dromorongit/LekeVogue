@@ -227,18 +227,35 @@
             document.getElementById('cartSubtotal').textContent = formatPrice(subtotal);
         }
         
-        async function updateItemQuantity(productId, change) {
-            const cartItems = await Cart.getCartItemsAsync();
-            const item = cartItems.find(i => i.id === productId);
+        function updateItemQuantity(productId, change) {
+            // Get item directly from cart storage to avoid ID mismatch issues
+            const cart = Cart.getCart();
             
-            if (item) {
-                const newQuantity = item.quantity + change;
-                Cart.updateQuantity(productId, newQuantity);
+            for (const item of cart) {
+                if (item.id === productId || item.id === String(productId)) {
+                    const newQuantity = item.quantity + change;
+                    if (newQuantity <= 0) {
+                        Cart.removeItem(productId);
+                    } else {
+                        item.quantity = newQuantity;
+                        Cart.saveCart(cart);
+                        // Update display
+                        renderCart();
+                    }
+                    return;
+                }
             }
         }
         
         function removeItem(productId) {
-            Cart.removeItem(productId);
+            // Get current cart items to find the correct item with size/color
+            const cart = Cart.getCart();
+            const item = cart.find(i => i.id === productId);
+            if (item) {
+                Cart.removeItemWithVariants(productId, item.size, item.color);
+            } else {
+                Cart.removeItem(productId);
+            }
         }
     </script>
 </body>
