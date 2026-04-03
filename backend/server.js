@@ -118,10 +118,13 @@ app.get('/setup-admin', (req, res) => {
     </head>
     <body style="font-family: Arial; padding: 50px; text-align: center;">
       <h1>Leke Vogue Admin Setup</h1>
-      <button onclick="seedAdmin()" style="padding: 15px 30px; font-size: 18px; background: #6f42c1; color: white; border: none; cursor: pointer; border-radius: 5px;">Create Admin Account</button>
+      <form id="seedForm">
+        <button type="submit" style="padding: 15px 30px; font-size: 18px; background: #6f42c1; color: white; border: none; cursor: pointer; border-radius: 5px;">Create Admin Account</button>
+      </form>
       <p id="result"></p>
       <script>
-      async function seedAdmin() {
+      document.getElementById('seedForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
         try {
           const response = await fetch('/api/auth/seed-admin', {
             method: 'POST',
@@ -133,7 +136,7 @@ app.get('/setup-admin', (req, res) => {
         } catch(e) {
           document.getElementById('result').textContent = 'Error: ' + e.message;
         }
-      }
+      });
       </script>
     </body>
     </html>
