@@ -1008,6 +1008,79 @@ h4 { font-size: 1.25rem; }
     color: var(--dark);
 }
 
+/* Stock Message for Product Details */
+.stock-message {
+    margin-bottom: 15px;
+    padding: 12px 15px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.stock-message:empty {
+    display: none;
+}
+
+.stock-message .stock-success {
+    color: #28a745;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stock-message .stock-success::before {
+    content: "✓";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: #28a745;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+    font-size: 12px;
+}
+
+.stock-message .stock-warning {
+    color: #ffc107;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stock-message .stock-warning::before {
+    content: "!";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: #ffc107;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+    font-size: 12px;
+}
+
+.stock-message .stock-error {
+    color: #dc3545;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stock-message .stock-error::before {
+    content: "✕";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+    font-size: 12px;
+}
+
 .size-options,
 .color-options {
     display: flex;

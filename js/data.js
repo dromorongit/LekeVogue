@@ -152,9 +152,9 @@ const API = {
 
     // Fetch single product by ID
     async getProductById(id) {
-        // First check cache
+        // First check cache - handle both string and numeric IDs
         if (productsCache) {
-            const cached = productsCache.find(p => p.id === id);
+            const cached = productsCache.find(p => p.id === id || p.id === String(id) || p.id === parseInt(id));
             if (cached) return cached;
         }
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const { protect } = require('../middleware/auth');
 const { 
@@ -507,139 +508,186 @@ router.get('/featured/list', async (req, res) => {
 });
 
 // @route   POST /api/products/deduct-stock
-// @desc    Deduct stock when order is placed
+// @desc    Deduct stock when order is placed (ATOMIC with transaction)
 // @access  Public
 router.post('/deduct-stock', async (req, res) => {
+  const session = await mongoose.startSession();
+  
   try {
+    session.startTransaction();
+    
     const { items } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
+      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         message: 'No items provided'
       });
     }
 
-    // First, validate all items have sufficient stock
-    const stockErrors = [];
+    // Sanitize and validate input
+    const sanitizedItems = items.map(item => ({
+      productId: String(item.productId).trim(),
+      size: item.size ? String(item.size).trim() : null,
+      color: item.color ? String(item.color).trim() : null,
+      quantity: Math.max(1, Math.min(100, parseInt(item.quantity) || 1)) // Clamp between 1-100
+    }));
+
+    // Validate all items and collect stock info in one pass
+    const stockValidationResults = [];
+    const updatedProducts = [];
     
-    for (const item of items) {
-      const { productId, size, color, quantity } = item;
-      
-      if (!productId || !quantity) {
+    for (const item of sanitizedItems) {
+      if (!item.productId) {
         continue;
       }
 
-      const product = await Product.findById(productId);
+      // Use findOne with session for transaction consistency
+      const product = await Product.findById(item.productId).session(session);
       
       if (!product) {
-        stockErrors.push(`Product not found`);
-        continue;
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `Product not found: ${item.productId}`
+        });
       }
 
+      let availableStock = 0;
+      let stockError = null;
+
       // Check stock using size_stock if available
-      if (product.size_stock && color && size) {
-        const colorStock = product.size_stock.get ? product.size_stock.get(color) : product.size_stock[color];
+      if (product.size_stock && item.color && item.size) {
+        const colorStock = product.size_stock.get ? 
+          product.size_stock.get(item.color) : 
+          product.size_stock[item.color];
+        
         if (colorStock) {
-          const sizeStock = colorStock.get ? colorStock.get(String(size)) : colorStock[String(size)];
-          if (sizeStock !== undefined && sizeStock < quantity) {
-            stockErrors.push(`Insufficient stock for ${product.product_name} - ${color} Size ${size}. Available: ${sizeStock}, Requested: ${quantity}`);
+          availableStock = colorStock.get ? 
+            colorStock.get(String(item.size)) : 
+            colorStock[String(item.size)] || 0;
+          
+          if (availableStock < item.quantity) {
+            stockError = `Insufficient stock for ${product.product_name} - ${item.color} Size ${item.size}. Available: ${availableStock}, Requested: ${item.quantity}`;
           }
         } else {
-          stockErrors.push(`Size ${size} in ${color} not available for ${product.product_name}`);
+          stockError = `Size ${item.size} in ${item.color} not available for ${product.product_name}`;
         }
       } else if (product.stock_quantity !== undefined) {
         // Fallback to overall stock
-        if (product.stock_quantity < quantity) {
-          stockErrors.push(`Insufficient stock for ${product.product_name}. Available: ${product.stock_quantity}, Requested: ${quantity}`);
+        availableStock = product.stock_quantity || 0;
+        if (availableStock < item.quantity) {
+          stockError = `Insufficient stock for ${product.product_name}. Available: ${availableStock}, Requested: ${item.quantity}`;
         }
       }
-    }
 
-    if (stockErrors.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Stock validation failed',
-        errors: stockErrors
+      if (stockError) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: 'Stock validation failed',
+          error: stockError
+        });
+      }
+
+      stockValidationResults.push({
+        productId: item.productId,
+        productName: product.product_name,
+        color: item.color,
+        size: item.size,
+        requested: item.quantity,
+        available: availableStock
       });
-    }
 
-    // If validation passes, deduct stock
-    for (const item of items) {
-      const { productId, size, color, quantity } = item;
+      // Calculate new stock values but don't update yet
+      const newOverallStock = Math.max(0, (product.stock_quantity || 0) - item.quantity);
       
-      if (!productId || !quantity) {
-        continue;
-      }
-
-      const product = await Product.findById(productId);
+      let updatedSizeStock = product.size_stock ? 
+        (product.size_stock.toJSON ? product.size_stock.toJSON() : {...product.size_stock}) : 
+        {};
       
-      if (!product) {
-        continue;
-      }
-
-      // Deduct from overall stock_quantity
-      const newStock = Math.max(0, (product.stock_quantity || 0) - quantity);
-      
-      // Update size_stock if available
-      let updatedSizeStock = product.size_stock ? { ...product.size_stock } : {};
-      let updatedColorSizes = product.color_sizes ? { ...product.color_sizes } : {};
-      
-      if (color && size) {
-        // Update size_stock
-        if (updatedSizeStock[color]) {
-          updatedSizeStock[color] = { ...updatedSizeStock[color] };
-          const currentSizeStock = updatedSizeStock[color][String(size)] || 0;
-          updatedSizeStock[color][String(size)] = Math.max(0, currentSizeStock - quantity);
+      if (item.color && item.size) {
+        if (updatedSizeStock[item.color]) {
+          const currentSizeStock = updatedSizeStock[item.color][String(item.size)] || 0;
+          updatedSizeStock[item.color][String(item.size)] = Math.max(0, currentSizeStock - item.quantity);
           
           // Remove size if stock is 0
-          if (updatedSizeStock[color][String(size)] === 0) {
-            delete updatedSizeStock[color][String(size)];
+          if (updatedSizeStock[item.color][String(item.size)] === 0) {
+            delete updatedSizeStock[item.color][String(item.size)];
           }
           // Remove color if no sizes left
-          if (Object.keys(updatedSizeStock[color]).length === 0) {
-            delete updatedSizeStock[color];
-          }
-        }
-        
-        // Also update color_sizes for backward compatibility
-        if (updatedColorSizes[color]) {
-          const colorSizesArray = [...updatedColorSizes[color]];
-          let remainingQty = quantity;
-          
-          for (let i = colorSizesArray.length - 1; i >= 0 && remainingQty > 0; i--) {
-            if (colorSizesArray[i] === String(size) || colorSizesArray[i] === size) {
-              colorSizesArray.splice(i, 1);
-              remainingQty--;
-            }
-          }
-          
-          updatedColorSizes[color] = colorSizesArray;
-          
-          if (colorSizesArray.length === 0) {
-            delete updatedColorSizes[color];
+          if (Object.keys(updatedSizeStock[item.color]).length === 0) {
+            delete updatedSizeStock[item.color];
           }
         }
       }
 
-      // Update the product
-      await Product.findByIdAndUpdate(productId, {
-        stock_quantity: newStock,
-        color_sizes: updatedColorSizes,
-        size_stock: updatedSizeStock
+      updatedProducts.push({
+        productId: item.productId,
+        newOverallStock,
+        updatedSizeStock
       });
     }
+
+    // If all validation passed, apply all updates within the transaction
+    for (const update of updatedProducts) {
+      await Product.findByIdAndUpdate(
+        update.productId,
+        {
+          stock_quantity: update.newOverallStock,
+          size_stock: update.updatedSizeStock
+        },
+        { session }
+      );
+    }
+
+    // Commit the transaction
+    await session.commitTransaction();
+    
+    // Fetch updated products to return in response
+    const updatedProductData = await Promise.all(
+      sanitizedItems.map(item => 
+        Product.findById(item.productId)
+      )
+    );
+
+    // Build response with updated stock info
+    const responseProducts = updatedProductData.map((product, index) => {
+      if (!product) return null;
+      
+      const item = sanitizedItems[index];
+      return {
+        id: product._id,
+        name: product.product_name,
+        stock_quantity: product.stock_quantity,
+        variantStock: item.color && item.size && product.size_stock ? 
+          (product.size_stock[item.color] ? product.size_stock[item.color][item.size] : 0) : 
+          null
+      };
+    }).filter(Boolean);
 
     res.json({
       success: true,
-      message: 'Stock deducted successfully'
+      message: 'Stock deducted successfully',
+      updatedProducts: responseProducts,
+      validationResults: stockValidationResults
     });
   } catch (error) {
+    // Abort transaction on any error
+    try {
+      await session.abortTransaction();
+    } catch (abortError) {
+      console.error('Error aborting transaction:', abortError);
+    }
+    
     console.error('Deduct stock error:', error);
     res.status(500).json({
       success: false,
       message: 'Error deducting stock'
     });
+  } finally {
+    session.endSession();
   }
 });
 
@@ -657,22 +705,28 @@ router.post('/check-stock', async (req, res) => {
       });
     }
 
+    // Sanitize and validate input
+    const sanitizedItems = items.map(item => ({
+      productId: String(item.productId).trim(),
+      size: item.size ? String(item.size).trim() : null,
+      color: item.color ? String(item.color).trim() : null,
+      quantity: Math.max(1, Math.min(100, parseInt(item.quantity) || 1))
+    }));
+
     const stockInfo = [];
     
-    for (const item of items) {
-      const { productId, size, color, quantity } = item;
-      
-      if (!productId || !quantity) {
+    for (const item of sanitizedItems) {
+      if (!item.productId) {
         continue;
       }
 
-      const product = await Product.findById(productId);
+      const product = await Product.findById(item.productId);
       
       if (!product) {
         stockInfo.push({
-          productId,
+          productId: item.productId,
           available: 0,
-          requested: quantity,
+          requested: item.quantity,
           error: 'Product not found'
         });
         continue;
@@ -681,16 +735,22 @@ router.post('/check-stock', async (req, res) => {
       let available = 0;
       
       // Check stock using size_stock if available
-      if (product.size_stock && color && size) {
-        const colorStock = product.size_stock.get ? product.size_stock.get(color) : product.size_stock[color];
+      if (product.size_stock && item.color && item.size) {
+        const colorStock = product.size_stock.get ? 
+          product.size_stock.get(item.color) : 
+          product.size_stock[item.color];
         if (colorStock) {
-          available = colorStock.get ? colorStock.get(String(size)) : colorStock[String(size)] || 0;
+          available = colorStock.get ? 
+            colorStock.get(String(item.size)) : 
+            colorStock[String(item.size)] || 0;
         }
-      } else if (product.color_sizes && color && size) {
+      } else if (product.color_sizes && item.color && item.size) {
         // Fallback to color_sizes array - count occurrences
-        const colorSizesArray = product.color_sizes.get ? product.color_sizes.get(color) : product.color_sizes[color];
+        const colorSizesArray = product.color_sizes.get ? 
+          product.color_sizes.get(item.color) : 
+          product.color_sizes[item.color];
         if (colorSizesArray) {
-          available = colorSizesArray.filter(s => String(s) === String(size)).length;
+          available = colorSizesArray.filter(s => String(s) === String(item.size)).length;
         }
       } else {
         // Fallback to overall stock
@@ -698,17 +758,17 @@ router.post('/check-stock', async (req, res) => {
       }
 
       stockInfo.push({
-        productId,
+        productId: item.productId,
         productName: product.product_name,
-        color: color || null,
-        size: size || null,
+        color: item.color || null,
+        size: item.size || null,
         available,
-        requested: quantity,
-        canFulfill: available >= quantity
+        requested: item.quantity,
+        canFulfill: available >= item.quantity
       });
     }
 
-    const allCanFulfill = stockInfo.every(info => info.canFulfill);
+    const allCanFulfill = stockInfo.every(info => info.canFulfill || info.error);
 
     res.json({
       success: allCanFulfill,

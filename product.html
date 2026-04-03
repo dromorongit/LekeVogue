@@ -339,8 +339,10 @@
                             <span id="totalSelectedQty">0</span>
                         </div>
                         
+                        <div id="stockMessage" class="stock-message"></div>
+                        
                         <div class="product-actions">
-                            <button class="btn btn-primary btn-lg" onclick="addVariantsToCart('${product.id}')">Add to Cart</button>
+                            <button class="btn btn-primary btn-lg" id="addToCartBtn" onclick="addVariantsToCart('${product.id}')">Add to Cart</button>
                             <a href="shop.html" class="btn btn-outline btn-lg">Continue Shopping</a>
                         </div>
                     </div>
@@ -393,7 +395,7 @@
             if (color && size && availableStock[color]) {
                 return availableStock[color][size] || 0;
             }
-            return 999; // Unlimited if no specific stock tracking
+            return 0; // Return 0 if no stock data available
         }
         
         // Global functions for product details
@@ -408,7 +410,8 @@
                 const size = parts.slice(2).join('_');
                 const available = getAvailableStock(color, size);
                 
-                if (newQty > available) {
+                // Only enforce limit if stock data is available (available > 0)
+                if (available > 0 && newQty > available) {
                     Cart.showToast(`Maximum ${available} available for Size ${size}`, 'error');
                     return;
                 }
@@ -423,6 +426,7 @@
                     }
                 }
                 
+                // Only enforce limit if stock data is available (totalAvailable > 0)
                 if (totalAvailable > 0 && newQty > totalAvailable) {
                     Cart.showToast(`Maximum ${totalAvailable} available for Size ${size}`, 'error');
                     return;
@@ -438,6 +442,7 @@
                     }
                 }
                 
+                // Only enforce limit if stock data is available (totalAvailable > 0)
                 if (totalAvailable > 0 && newQty > totalAvailable) {
                     Cart.showToast(`Maximum ${totalAvailable} available for Color ${color}`, 'error');
                     return;
@@ -466,6 +471,54 @@
             if (totalElement) {
                 totalElement.textContent = total;
             }
+            
+            // Update stock message
+            updateStockMessage(total);
+        }
+        
+        // Update stock message based on selection
+        function updateStockMessage(total) {
+            const stockMsg = document.getElementById('stockMessage');
+            if (!stockMsg) return;
+            
+            if (total === 0) {
+                stockMsg.innerHTML = '<span class="stock-warning">Please select a variant with quantity</span>';
+                disableAddToCart(true);
+            } else {
+                // Check if all selected variants have available stock
+                let allAvailable = true;
+                for (const [key, qty] of Object.entries(variantQuantities)) {
+                    if (qty > 0) {
+                        if (key.startsWith('colorsize_')) {
+                            const parts = key.split('_');
+                            const color = parts[1];
+                            const size = parts.slice(2).join('_');
+                            const available = getAvailableStock(color, size);
+                            if (available > 0 && qty > available) {
+                                allAvailable = false;
+                            }
+                        }
+                    }
+                }
+                
+                if (allAvailable) {
+                    stockMsg.innerHTML = '<span class="stock-success">Ready to add to cart</span>';
+                    disableAddToCart(false);
+                } else {
+                    stockMsg.innerHTML = '<span class="stock-error">Some selected quantity exceeds available stock</span>';
+                    disableAddToCart(true);
+                }
+            }
+        }
+        
+        // Enable/Disable Add to Cart button
+        function disableAddToCart(disable) {
+            const btn = document.getElementById('addToCartBtn');
+            if (btn) {
+                btn.disabled = disable;
+                btn.style.opacity = disable ? '0.5' : '1';
+                btn.style.cursor = disable ? 'not-allowed' : 'pointer';
+            }
         }
         
         function changeImage(src) {
@@ -492,17 +545,44 @@
                         const color = parts[1];
                         const size = parts.slice(2).join('_');
                         
-                        // Validate stock before adding
+                        // Validate stock before adding (only if stock data is available)
                         const available = getAvailableStock(color, size);
-                        if (qty > available) {
+                        if (available > 0 && qty > available) {
                             Cart.showToast(`Only ${available} available for Size ${size} in ${color}`, 'error');
                             return;
                         }
                         
                         variants.push({ type, color, size, quantity: qty });
+                    } else if (type === 'size') {
+                        const size = parts.slice(1).join('_');
+                        // Validate stock for size-only variants
+                        let totalAvailable = 0;
+                        for (const color in availableStock) {
+                            if (availableStock[color][size]) {
+                                totalAvailable += availableStock[color][size];
+                            }
+                        }
+                        if (totalAvailable > 0 && qty > totalAvailable) {
+                            Cart.showToast(`Only ${totalAvailable} available for Size ${size}`, 'error');
+                            return;
+                        }
+                        variants.push({ type, value: size, quantity: qty });
+                    } else if (type === 'color') {
+                        const color = parts.slice(1).join('_');
+                        // Validate stock for color-only variants
+                        let totalAvailable = 0;
+                        if (availableStock[color]) {
+                            for (const size in availableStock[color]) {
+                                totalAvailable += availableStock[color][size];
+                            }
+                        }
+                        if (totalAvailable > 0 && qty > totalAvailable) {
+                            Cart.showToast(`Only ${totalAvailable} available for Color ${color}`, 'error');
+                            return;
+                        }
+                        variants.push({ type, value: color, quantity: qty });
                     } else {
-                        const value = parts.slice(1).join('_');
-                        variants.push({ type, value, quantity: qty });
+                        variants.push({ type, value: parts.slice(1).join('_'), quantity: qty });
                     }
                 }
             }
