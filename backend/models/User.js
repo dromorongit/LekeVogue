@@ -63,6 +63,8 @@ userSchema.methods.hasPermission = function(permission) {
   const permissions = {
     super_admin: [
       'view_dashboard',
+      'view_orders',
+      'view_single_order',
       'manage_products',
       'manage_orders',
       'create_users',
