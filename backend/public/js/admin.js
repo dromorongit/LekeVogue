@@ -587,7 +587,11 @@ async function loadDashboard() {
     }
     
     // Load recent orders
-    const ordersResponse = await fetch(`${API_BASE}/orders?limit=5&sort=desc`);
+    const ordersResponse = await fetch(`${API_BASE}/orders?limit=5&sort=desc`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
     const ordersData = await ordersResponse.json();
     
     if (ordersData.success) {
@@ -1041,7 +1045,11 @@ async function loadProducts(page = 1) {
   try {
     showLoading();
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
     const data = await response.json();
     
     if (data.success) {
