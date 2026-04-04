@@ -111,11 +111,7 @@ const orderSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
-// Index for efficient queries
-orderSchema.index({ orderNumber: 1 });
-orderSchema.index({ customerPhone: 1 });
-orderSchema.index({ paymentReference: 1 });
+// Indexes for efficient queries
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ paymentStatus: 1 });
 orderSchema.index({ createdAt: -1 });
